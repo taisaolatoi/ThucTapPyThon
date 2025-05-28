@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chatbot Luật & Giáo Dục</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        button { padding: 10px 15px; background: #4285F4; color: white; border: none; cursor: pointer; }
+        #response { margin: 20px 0; padding: 15px; border: 1px solid #ddd; min-height: 100px; }
+    </style>
+</head>
+<body>
+    <h1>Chatbot Đa Năng</h1>
+    
+    <select id="mode">
+        <option value="law">Tư vấn Pháp Luật</option>
+        <option value="education">Tạo Đề Giáo Dục</option>
+    </select>
+    
+    <textarea id="prompt" placeholder="Nhập câu hỏi/yêu cầu..."></textarea>
+    <button onclick="sendMessage()">Gửi</button>
+    
+    <div id="response"></div>
+    <button onclick="convertToSpeech()">🔊 Nghe giọng đọc</button>
+
+    <script>
+        async function sendMessage() {
+            const prompt = document.getElementById("prompt").value;
+            const mode = document.getElementById("mode").value;
+            
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt, mode })
+            });
+            
+            const data = await response.json();
+            document.getElementById("response").innerText = data.response;
+        }
+
+        async function convertToSpeech() {
+            const text = document.getElementById("response").innerText;
+            const response = await fetch("/api/tts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text })
+            });
+            
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            new Audio(audioUrl).play();
+        }
+    </script>
+</body>
+</html>
