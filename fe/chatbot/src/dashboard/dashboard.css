@@ -1,0 +1,558 @@
+/* src/Dashboard.css */
+
+/* --- CSS Variables (Optional but recommended for consistency) --- */
+:root {
+    --primary-purple: #8b5cf6;
+    /* A shade of purple */
+    --light-purple: #ede9fe;
+    /* Lighter purple for backgrounds */
+    --dark-purple: #6d28d9;
+    /* Darker purple for hover states */
+    --accent-blue: #3b82f6;
+    --accent-green: #10b981;
+    --accent-red: #ef4444;
+    --accent-yellow: #f59e0b;
+    --accent-indigo: #6366f1;
+    --accent-pink: #ec4899;
+    --accent-orange: #f97316;
+    --accent-cyan: #06b6d4;
+
+    --text-dark: #1f2937;
+    --text-medium: #4b5563;
+    --text-light: #6b7280;
+    --text-lighter: #9ca3af;
+
+    --bg-light-gray: #f9fafb;
+    --bg-medium-gray: #f3f4f6;
+    --bg-white: #ffffff;
+    --border-gray: #e5e7eb;
+
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    --spacing-1: 0.25rem;
+    /* 4px */
+    --spacing-2: 0.5rem;
+    /* 8px */
+    --spacing-3: 0.75rem;
+    /* 12px */
+    --spacing-4: 1rem;
+    /* 16px */
+    --spacing-6: 1.5rem;
+    /* 24px */
+    --spacing-8: 2rem;
+    /* 32px */
+    --spacing-10: 2.5rem;
+    /* 40px */
+    --spacing-12: 3rem;
+    /* 48px */
+}
+
+/* --- Base Styles --- */
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+    background-color: var(--bg-medium-gray);
+    font-family: sans-serif;
+}
+
+/* --- Sidebar Styles --- */
+.sidebar {
+    width: 256px;
+    /* 64 * 4px */
+    background-color: var(--bg-white);
+    box-shadow: var(--shadow-lg);
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: var(--spacing-4);
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--spacing-8);
+}
+
+.sidebar-logo {
+    width: 40px;
+    height: 40px;
+    background-color: var(--primary-purple);
+    border-radius: 9999px;
+    /* full rounded */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--bg-white);
+    font-size: 1.125rem;
+    font-weight: bold;
+    margin-right: var(--spacing-2);
+}
+
+.sidebar-app-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav li {
+    margin-bottom: var(--spacing-2);
+}
+
+.sidebar-nav-button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: var(--spacing-3) var(--spacing-4);
+    /* py-3 px-4 */
+    border-radius: 8px;
+    text-align: left;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 1rem;
+}
+
+.sidebar-nav-button.active {
+    background-color: var(--light-purple);
+    color: var(--primary-purple);
+    font-weight: 500;
+}
+
+.sidebar-nav-button:not(.active) {
+    color: var(--text-medium);
+}
+
+.sidebar-nav-button:not(.active):hover {
+    background-color: var(--bg-light-gray);
+    color: var(--text-dark);
+}
+
+.sidebar-nav-button svg {
+    height: 20px;
+    /* h-5 */
+    width: 20px;
+    /* w-5 */
+    margin-right: var(--spacing-3);
+}
+
+.sidebar-footer {
+    padding-top: var(--spacing-4);
+    border-top: 1px solid var(--border-gray);
+}
+
+.sidebar-pin-usage {
+    font-size: 0.875rem;
+    /* text-sm */
+    color: var(--text-light);
+    margin-bottom: var(--spacing-2);
+}
+
+.sidebar-user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+}
+
+.sidebar-user-avatar {
+    width: 32px;
+    /* w-8 */
+    height: 32px;
+    /* h-8 */
+    background-color: var(--bg-medium-gray);
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-medium);
+}
+
+.sidebar-user-details p {
+    margin: 0;
+    font-size: 0.875rem;
+    /* text-sm */
+    color: var(--text-dark);
+    font-weight: 500;
+}
+
+.sidebar-user-details a {
+    color: var(--accent-blue);
+    font-size: 0.75rem;
+    /* text-xs */
+    text-decoration: none;
+}
+
+.sidebar-user-details a:hover {
+    text-decoration: underline;
+}
+
+/* --- Main Content Area --- */
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    /* Enable vertical scrolling */
+}
+
+.main-content-padding {
+    padding: var(--spacing-6);
+    /* p-6 */
+}
+
+/* --- User Header Section --- */
+.user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-6);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-4);
+}
+
+.user-profile-avatar {
+    width: 48px;
+    /* w-12 */
+    height: 48px;
+    /* h-12 */
+    background-color: #d1fae5;
+    /* bg-green-200 */
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #065f46;
+    /* text-green-700 */
+    font-weight: bold;
+}
+
+.user-profile-info h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    /* text-xl */
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.user-profile-info p {
+    margin: 0;
+    font-size: 0.875rem;
+    /* text-sm */
+    color: var(--text-light);
+}
+
+.chat-button {
+    padding: 0.5rem 1.5rem;
+    /* px-6 py-2 */
+    background-color: var(--primary-purple);
+    color: var(--bg-white);
+    border-radius: 8px;
+    /* rounded-lg */
+    box-shadow: var(--shadow-md);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.chat-button:hover {
+    background-color: var(--dark-purple);
+}
+
+/* --- PIN and Expiration Info --- */
+.pin-expiration-info {
+    margin-bottom: var(--spacing-8);
+    color: var(--text-medium);
+}
+
+/* --- Overview Section --- */
+.overview-section {
+    background-color: var(--bg-white);
+    padding: var(--spacing-6);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    margin-bottom: var(--spacing-8);
+}
+
+.overview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-4);
+}
+
+.overview-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    /* text-lg */
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.overview-time-filters {
+    display: flex;
+    gap: var(--spacing-2);
+}
+
+.overview-filter-button {
+    padding: 0.5rem 1rem;
+    /* px-4 py-2 */
+    border-radius: 8px;
+    font-size: 0.875rem;
+    /* text-sm */
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.overview-filter-button.active {
+    background-color: var(--light-purple);
+    color: var(--primary-purple);
+}
+
+.overview-filter-button:not(.active) {
+    background-color: var(--bg-medium-gray);
+    color: var(--text-medium);
+}
+
+.overview-filter-button:not(.active):hover {
+    background-color: var(--border-gray);
+}
+
+.overview-cards {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: var(--spacing-4);
+}
+
+.overview-card {
+    padding: var(--spacing-4);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.overview-card.pin {
+    background-color: #f3e8ff;
+    /* bg-purple-50 */
+}
+
+.overview-card.chat {
+    background-color: #eff6ff;
+    /* bg-blue-50 */
+}
+
+.overview-card.articles {
+    background-color: #dcfce7;
+    /* bg-green-50 */
+}
+
+.overview-card p {
+    margin: 0;
+    font-size: 0.875rem;
+    /* text-sm */
+    color: var(--text-medium);
+}
+
+.overview-card-value {
+    font-size: 1.5rem;
+    /* text-2xl */
+    font-weight: bold;
+    margin-top: var(--spacing-1);
+    /* Adjust as needed */
+}
+
+.overview-card.pin .overview-card-value {
+    color: #6b21a8;
+    /* text-purple-800 */
+}
+
+.overview-card.chat .overview-card-value {
+    color: #2563eb;
+    /* text-blue-800 */
+}
+
+.overview-card.articles .overview-card-value {
+    color: #16a34a;
+    /* text-green-800 */
+}
+
+
+/* --- AI Form Content Creation Section --- */
+.ai-form-section {
+    background-color: var(--bg-white);
+    padding: var(--spacing-6);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+}
+
+.ai-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-4);
+}
+
+.ai-form-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.ai-form-view-all-button {
+    color: var(--primary-purple);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.ai-form-view-all-button:hover {
+    color: var(--dark-purple);
+}
+
+.ai-form-view-all-button svg {
+    height: 16px;
+    /* h-4 */
+    width: 16px;
+    /* w-4 */
+}
+
+.ai-form-cards {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: var(--spacing-4);
+}
+
+.ai-form-card {
+    background-color: var(--bg-light-gray);
+    padding: var(--spacing-4);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+.ai-form-card:hover {
+    background-color: var(--bg-medium-gray);
+}
+
+.ai-form-card svg {
+    height: 24px;
+    /* h-6 */
+    width: 24px;
+    /* w-6 */
+}
+
+/* Specific icon colors */
+.ai-form-card.seo svg {
+    color: var(--accent-blue);
+}
+
+.ai-form-card.translate svg {
+    color: var(--accent-green);
+}
+
+.ai-form-card.video-script svg {
+    color: var(--accent-red);
+}
+
+.ai-form-card.landing-page svg {
+    color: var(--accent-yellow);
+}
+
+.ai-form-card.facebook-post svg {
+    color: var(--accent-indigo);
+}
+
+.ai-form-card.facebook-ads svg {
+    color: var(--accent-purple);
+}
+
+.ai-form-card.template-rewrite svg {
+    color: var(--accent-orange);
+}
+
+.ai-form-card.multi-lang-translate svg {
+    color: var(--accent-pink);
+}
+
+.ai-form-card.advanced-seo svg {
+    color: var(--accent-cyan);
+}
+
+
+.ai-form-card span {
+    color: var(--text-medium);
+}
+
+/* --- Responsive Adjustments --- */
+@media (min-width: 768px) {
+
+    /* md breakpoint */
+    .overview-cards {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .ai-form-cards {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+
+    /* lg breakpoint */
+    .ai-form-cards {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Trong src/components/dashboard.css */
+
+/* Thêm vào cuối file hoặc nơi phù hợp */
+.logout-button-sidebar {
+    background-color: #dc3545;
+    /* Màu đỏ */
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-top: 15px;
+    /* Khoảng cách với phần trên */
+    width: 100%;
+    /* Chiếm toàn bộ chiều rộng của footer */
+    text-align: center;
+    transition: background-color 0.2s ease;
+}
+
+.logout-button-sidebar:hover {
+    background-color: #c82333;
+}

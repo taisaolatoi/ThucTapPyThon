@@ -1,0 +1,190 @@
+/* src/components/Content/TextToSpeechContent.css */
+
+.tts-page {
+    background-color: var(--bg-white);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-6);
+}
+
+.tts-header {
+    margin-bottom: var(--spacing-6);
+}
+
+.tts-breadcrumb {
+    font-size: 0.875rem; /* text-sm */
+    color: var(--text-light);
+}
+
+.tts-breadcrumb span:last-child {
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.tts-main-title {
+    font-size: 1.5rem; /* text-2xl */
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-top: var(--spacing-2);
+}
+
+.tts-section {
+    margin-bottom: var(--spacing-8);
+}
+
+.tts-section-title {
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: var(--spacing-4);
+}
+
+.tts-textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: var(--spacing-4);
+    border: 1px solid var(--border-gray);
+    border-radius: 8px;
+    font-size: 1rem;
+    color: var(--text-dark);
+    resize: vertical; /* Allow vertical resizing */
+}
+
+.tts-textarea::placeholder {
+    color: var(--text-light);
+}
+
+.tts-options-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: var(--spacing-4);
+}
+
+@media (min-width: 768px) { /* md breakpoint */
+    .tts-options-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) { /* lg breakpoint */
+    .tts-options-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.tts-option-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.tts-option-group label {
+    font-size: 0.875rem; /* text-sm */
+    color: var(--text-medium);
+    margin-bottom: var(--spacing-2);
+}
+
+.tts-select,
+.tts-range-input {
+    width: 100%;
+    padding: 0.625rem 0.75rem; /* py-2.5 px-3 */
+    border: 1px solid var(--border-gray);
+    border-radius: 8px;
+    background-color: var(--bg-white);
+    font-size: 0.875rem;
+    color: var(--text-dark);
+    appearance: none; /* Remove default arrow for select */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M7%207l3%203%203-3m0%206l-3%203-3-3%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+}
+
+.tts-range-input {
+    padding: 0; /* Range input needs different padding */
+    background-image: none; /* No arrow for range input */
+}
+
+/* Style for range input thumb and track */
+.tts-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary-purple);
+  cursor: pointer;
+  margin-top: -6px; /* Adjust to center the thumb */
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2); /* ring */
+}
+
+.tts-range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary-purple);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+}
+
+.tts-range-input::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-medium-gray);
+  border-radius: 2px;
+}
+
+.tts-range-input::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-medium-gray);
+  border-radius: 2px;
+}
+
+
+.tts-action-buttons {
+    display: flex;
+    gap: var(--spacing-4);
+    margin-top: var(--spacing-8);
+}
+
+.tts-button {
+    padding: 0.75rem 1.5rem; /* py-3 px-6 */
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.tts-button.primary {
+    background-color: var(--primary-purple);
+    color: var(--bg-white);
+    box-shadow: var(--shadow-md);
+}
+
+.tts-button.primary:hover {
+    background-color: var(--dark-purple);
+}
+
+.tts-button.secondary {
+    background-color: var(--bg-medium-gray);
+    color: var(--text-dark);
+}
+
+.tts-button.secondary:hover {
+    background-color: var(--border-gray);
+}
+
+.tts-status-message {
+    margin-top: var(--spacing-6);
+    padding: var(--spacing-4);
+    background-color: var(--bg-light-gray);
+    border: 1px solid var(--border-gray);
+    border-radius: 8px;
+    color: var(--text-medium);
+    font-size: 0.9rem;
+}
