@@ -9,7 +9,7 @@ import rehypeRaw from 'rehype-raw'; // Plugin cho phép HTML raw (cẩn thận v
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
-const ChatContent = ({ loggedInUserId, loggedInUsername, onLogout, activeSessionId, setActiveSessionId }) => {
+const ChatContent = ({username, loggedInUserId, loggedInUsername, onLogout, activeSessionId, setActiveSessionId }) => {
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState('');
     const [chatSegments, setChatSegments] = useState([]);
@@ -293,7 +293,7 @@ const ChatContent = ({ loggedInUserId, loggedInUsername, onLogout, activeSession
                     {/* Hiển thị tin nhắn chat */}
                     {chatMessages.map((msg, index) => (
                         <div key={index} className={`message ${msg.sender}`}>
-                            {msg.sender === 'user' && <span className="message-sender">Bạn: </span>}
+                            {msg.sender === 'user' && <span className="message-sender">{username}: </span>}
                             {msg.sender === 'model' && <span className="message-sender">AI: </span>}
                             {msg.sender === 'system' && <span className="message-sender system-message">Hệ thống: </span>}
                             {/* DÙNG ReactMarkdown Ở ĐÂY */}

@@ -1,10 +1,10 @@
 // src/components/Dashboard.jsx
-import React, { useState } from 'react'; // Đảm bảo có useState
-import './dashboard.css'; // Import file CSS của bạn
-import Chatbox from '../chatbox/chatbox'; // Đảm bảo đường dẫn đúng
-import Voice from '../voice_to_text/voice'; // Đảm bảo đường dẫn đúng
+import React, { useState } from 'react'; 
+import './dashboard.css'; 
+import Chatbox from '../chatbox/chatbox';
+import Voice from '../voice_to_text/voice';
+import TextToImage from '../text-to-image/text_to_image'
 
-// Main App component
 // NHẬN loggedInUserId, username, và onLogout TỪ PROPS CỦA APP.JS
 const Dashboard = ({ loggedInUserId, username, onLogout }) => {
   const [activeMenuItem, setActiveMenuItem] = useState('Bảng điều khiển'); // State to manage active menu item
@@ -108,7 +108,7 @@ const Dashboard = ({ loggedInUserId, username, onLogout }) => {
           </div>
         );
       case 'AI Form':
-        return <div className="main-content-padding content-placeholder"><Voice loggedInUserId={loggedInUserId} username={username} /></div>;
+        return <div className="main-content-padding content-placeholder"><TextToImage loggedInUserId={loggedInUserId} username={username} activeSessionId={activeSessionId}setActiveSessionId={setActiveSessionId} /></div>;
       case 'Tạo Voice':
         return <div className="main-content-padding content-placeholder"><Voice loggedInUserId={loggedInUserId} username={username} /></div>;
       case 'Voice to Text':

@@ -1,5 +1,7 @@
-# backend-python/chat.py
 import os
+import sqlite3 # Import sqlite3
+import datetime # Import datetime for timestamp (for add_message)
+import base64 # Import base64 for image data handling
 from flask import Blueprint, request, jsonify, g
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
@@ -11,11 +13,7 @@ chat_bp = Blueprint('chat', __name__, url_prefix='/api/chat')
 # Cần đảm bảo GEMINI_API_KEY đã được load qua dotenv trong app.py khi app chạy
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
-    # Nếu chạy riêng file này để test, bạn cần dotenv.load_dotenv() ở đây
-    # Nhưng khi được import vào app.py, app.py sẽ lo phần này
     print("Lỗi: Thiếu GEMINI_API_KEY trong biến môi trường khi khởi tạo chat blueprint.")
-    # Có thể raise ValueError hoặc chỉ cảnh báo nếu muốn app vẫn chạy mà không có chức năng AI
-    # raise ValueError("GEMINI_API_KEY is not set in environment variables.")
 
 # Cấu hình Gemini chỉ khi API_KEY có
 if GEMINI_API_KEY:
@@ -53,13 +51,58 @@ if GEMINI_API_KEY:
 else:
     model = None # Hoặc xử lý khác nếu không có API key
 
+# --- Database functions (moved from database.py) ---
+DATABASE_NAME = 'chatbot.db'
+
+def get_db_connection():
+    """
+    Kết nối đến cơ sở dữ liệu SQLite và cấu hình row_factory để trả về các hàng
+    dưới dạng sqlite3.Row (cho phép truy cập cột bằng tên).
+    """
+    conn = sqlite3.connect(DATABASE_NAME)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def add_message(session_id, sender, text=None, image_data=None):
+    """
+    Thêm một tin nhắn mới vào bảng messages.
+    Có thể là tin nhắn văn bản hoặc tin nhắn có kèm ảnh.
+    """
+    if text is None and image_data is None:
+        print("Lỗi: Tin nhắn phải có ít nhất văn bản hoặc dữ liệu ảnh.")
+        return None
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO messages (session_id, sender, text, image_data) VALUES (?, ?, ?, ?)",
+            (session_id, sender, text, image_data)
+        )
+        conn.commit()
+        return cursor.lastrowid
+    except sqlite3.Error as e:
+        print(f"Lỗi SQLite khi thêm tin nhắn: {e}")
+        conn.rollback()
+        return None
+    finally:
+        conn.close()
+
 # Helper function để lấy kết nối CSDL từ Flask's global context (g)
-# Hàm này sẽ sử dụng get_db_connection từ database.py mà app.py đã cấu hình
+# Hàm này sẽ sử dụng get_db_connection cục bộ
 def get_db():
     if 'db' not in g:
-        from database import get_db_connection # Import cục bộ để tránh circular import
-        g.db = get_db_connection()
+        g.db = get_db_connection() # Sử dụng hàm cục bộ get_db_connection
     return g.db
+
+@chat_bp.teardown_app_request
+def teardown_db(exception):
+    """
+    Đóng kết nối cơ sở dữ liệu sau mỗi yêu cầu.
+    """
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 
 @chat_bp.route('/', methods=['POST']) # Endpoint chính để chat
 def chat_endpoint():
@@ -90,15 +133,25 @@ def chat_endpoint():
             print(f"Đã tạo phiên chat mới với ID: {session_id}")
 
         # 2. Lưu tin nhắn của người dùng vào CSDL
-        cursor.execute("INSERT INTO messages (session_id, sender, text) VALUES (?, ?, ?)",
-                       (session_id, 'user', current_user_message))
-        db.commit()
+        add_message(session_id, 'user', current_user_message) # Sử dụng hàm add_message cục bộ
 
         # 3. Chuẩn bị lịch sử chat cho Gemini API
         gemini_chat_history = []
         for msg in messages[:-1]:
             role = "user" if msg['sender'] == 'user' else "model"
-            gemini_chat_history.append({"role": role, "parts": [{"text": msg['text']}]})
+            # Nếu có image_url trong tin nhắn, chuyển đổi nó thành inlineData cho Gemini
+            if 'imageUrl' in msg and msg['imageUrl']:
+                # Loại bỏ tiền tố "data:image/png;base64," và decode base64
+                base64_data = msg['imageUrl'].split(',')[1]
+                gemini_chat_history.append({
+                    "role": role,
+                    "parts": [
+                        {"text": msg['text']},
+                        {"inlineData": {"mimeType": "image/png", "data": base64_data}}
+                    ]
+                })
+            else:
+                gemini_chat_history.append({"role": role, "parts": [{"text": msg['text']}]})
 
         # 4. Gọi Gemini API
         chat = model.start_chat(history=gemini_chat_history)
@@ -120,9 +173,7 @@ def chat_endpoint():
         bot_response_text = response.text
 
         # 5. Lưu tin nhắn của bot vào CSDL
-        cursor.execute("INSERT INTO messages (session_id, sender, text) VALUES (?, ?, ?)",
-                       (session_id, 'model', bot_response_text))
-        db.commit()
+        add_message(session_id, 'model', bot_response_text) # Sử dụng hàm add_message cục bộ
 
         return jsonify({"response": bot_response_text, "session_id": session_id})
 
@@ -136,9 +187,19 @@ def chat_endpoint():
 def get_session_history(session_id):
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT sender, text, timestamp FROM messages WHERE session_id = ? ORDER BY timestamp ASC", (session_id,))
+    # Lấy cả image_data để frontend có thể hiển thị ảnh
+    cursor.execute("SELECT sender, text, image_data, timestamp FROM messages WHERE session_id = ? ORDER BY timestamp ASC", (session_id,))
     messages = cursor.fetchall()
-    return jsonify([dict(msg) for msg in messages]), 200
+
+    history_data = []
+    for msg in messages:
+        msg_dict = dict(msg)
+        if msg_dict['image_data']:
+            # Chuyển BLOB (byte string) sang Base64 string để gửi về frontend
+            msg_dict['image_url'] = f"data:image/png;base64,{base64.b64encode(msg_dict['image_data']).decode('utf-8')}"
+        del msg_dict['image_data'] # Xóa dữ liệu BLOB thô trước khi gửi JSON
+        history_data.append(msg_dict)
+    return jsonify(history_data), 200
 
 @chat_bp.route('/sessions/<int:user_id>', methods=['GET'])
 def get_user_sessions(user_id):
@@ -162,6 +223,7 @@ def delete_chat_session(session_id):
     db = get_db()
     cursor = db.cursor()
     try:
+        db.execute("BEGIN TRANSACTION")
         cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
         cursor.execute("DELETE FROM chat_sessions WHERE id = ?", (session_id,))
         db.commit()

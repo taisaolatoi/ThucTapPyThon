@@ -44,6 +44,7 @@ def init_db():
             session_id INTEGER NOT NULL,
             sender TEXT NOT NULL,
             text TEXT NOT NULL,
+            image_data TEXT, -- Cột mới để lưu trữ dữ liệu ảnh Base64
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (session_id) REFERENCES chat_sessions (id)
         )

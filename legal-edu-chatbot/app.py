@@ -4,22 +4,10 @@ from flask import Flask, jsonify, g
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# Import các hàm và Blueprint từ các file đã tách
 from database import init_db, get_db_connection
-
-# THAY ĐỔI CÁCH IMPORT Ở ĐÂY - Đảm bảo đường dẫn đúng tới file auth.py trong folder api
-# Giả định cấu trúc thư mục của bạn là:
-# your_project/
-# ├── app.py
-# ├── database.py
-# ├── .env
-# └── api/
-#     ├── __init__.py  (file rỗng để biến api thành package)
-#     ├── auth.py
-#     └── chat.py
 from api.auth import auth_bp # Import Blueprint xác thực từ package 'api'
 from api.chat import chat_bp # Import Blueprint chat từ package 'api'
-# from api.image import image_bp # Import blueprint hình ảnh
+from api.image import image_bp # Import Blueprint hình ảnh từ package 'api'
 
 
 # Tải biến môi trường (phải ở đây để các module khác có thể truy cập os.getenv)
@@ -63,6 +51,7 @@ app.register_blueprint(auth_bp)
 # Các routes trong chat_bp sẽ có tiền tố /api/chat (ví dụ: /api/chat/, /api/chat/history/...)
 app.register_blueprint(chat_bp)
 # app.register_blueprint(image_bp) # Đăng ký blueprint hình ảnh
+app.register_blueprint(image_bp) # Đăng ký blueprint hình ảnh mới
 
 # Route mặc định (tùy chọn)
 @app.route('/')
