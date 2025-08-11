@@ -1,17 +1,23 @@
-# app.py
 import os
 from flask import Flask, jsonify, g
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-from database import init_db, get_db_connection
-from api.auth import auth_bp # Import Blueprint xác thực từ package 'api'
-from api.chat import chat_bp # Import Blueprint chat từ package 'api'
-from api.image import image_bp # Import Blueprint hình ảnh từ package 'api'
-
-
 # Tải biến môi trường (phải ở đây để các module khác có thể truy cập os.getenv)
 load_dotenv()
+
+# Import các hàm kết nối và khởi tạo CSDL từ database.py
+from database import init_db, get_db_connection
+
+# Import các Blueprint từ package 'api'
+from api.auth import auth_bp
+from api.chat import chat_bp
+from api.image import image_bp
+from api.dashboard_bp import dashboard_bp
+from api.stt import stt_bp
+from api.QA import qa_bp
+from api.user_management import user_bp
+from api.setting_api import settings_bp
 
 app = Flask(__name__)
 
@@ -27,10 +33,9 @@ if not GEMINI_API_KEY:
 # Hàm này dùng để truy cập kết nối CSDL trong các Blueprint
 def get_db():
     if 'db' not in g:
-        g.db = get_db_connection()
+        g.db = get_db_connection() # Sử dụng hàm get_db_connection từ database.py
     return g.db
 
-# ĐẢM BẢO THÊM PHẦN NÀY VÀO app.py CỦA BẠN
 @app.before_request
 def before_request():
     """
@@ -52,7 +57,11 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(chat_bp)
 # app.register_blueprint(image_bp) # Đăng ký blueprint hình ảnh
 app.register_blueprint(image_bp) # Đăng ký blueprint hình ảnh mới
-
+app.register_blueprint(dashboard_bp) # Đăng ký blueprint dashboard
+app.register_blueprint(stt_bp)  # Đăng ký blueprint STT
+app.register_blueprint(qa_bp)  # Đăng ký blueprint QA
+app.register_blueprint(user_bp)  # Đăng ký blueprint quản lý người dùng
+app.register_blueprint(settings_bp)  # Đăng ký blueprint cài đặt
 # Route mặc định (tùy chọn)
 @app.route('/')
 def home():

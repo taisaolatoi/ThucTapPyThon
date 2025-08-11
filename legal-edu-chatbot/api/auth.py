@@ -1,17 +1,23 @@
-# backend-python/auth.py
 import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from flask import Blueprint, request, jsonify, g
 from werkzeug.security import generate_password_hash, check_password_hash
-import smtplib # Import thư viện gửi email
-from email.mime.text import MIMEText # Để tạo nội dung email
-import random # Để tạo mật khẩu ngẫu nhiên
-import string # Để tạo mật khẩu ngẫu nhiên
+import smtplib
+from email.mime.text import MIMEText
+import random
+import string
+from datetime import datetime # Đã thay đổi cách import datetime
 
-auth_bp = Blueprint('auth', __name__, url_prefix='/api') # <<< Đổi prefix để phù hợp với frontend của bạn
+
+# Import get_db_connection từ database.py
+from database import get_db_connection
+
+auth_bp = Blueprint('auth', __name__, url_prefix='/api')
 
 def get_db():
+    # Sử dụng hàm get_db_connection từ database.py
     if 'db' not in g:
-        from database import get_db_connection
         g.db = get_db_connection()
     return g.db
 
@@ -56,78 +62,148 @@ def generate_random_password(length=10):
 def register():
     data = request.get_json()
     username = data.get('username')
-    email = data.get('email') # Bạn nói email là tùy chọn trong frontend, nhưng tốt nhất nên có để gửi mật khẩu
+    email = data.get('email')
     password = data.get('password')
-
+    phone = data.get('phone') 
+    
+    # Mặc định role là 0 cho người dùng mới (User)
+    role = 0 
+    # Mặc định status là 'Active'
+    status = 'Active'
+    # Lấy thời gian hiện tại cho registered_at
+    registered_at = datetime.now()
     if not username or not password:
         return jsonify({"error": "Tên người dùng và mật khẩu là bắt buộc."}), 400
     
-    db = get_db()
-    cursor = db.cursor()
+    db = None
+    cursor = None
 
     try:
+        print("Attempting to get DB connection...")
+        db = get_db()
+        print("DB connection obtained.")
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+        print("Cursor obtained.")
+
         # Kiểm tra tên người dùng đã tồn tại chưa
-        cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+        print(f"Checking if username '{username}' exists...")
+        cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
         if cursor.fetchone():
+            print("Username already exists.")
             return jsonify({"error": "Tên người dùng này đã tồn tại."}), 409
 
         # Nếu email được cung cấp, kiểm tra email đã tồn tại chưa
         if email:
-            cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+            print(f"Checking if email '{email}' exists...")
+            cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
             if cursor.fetchone():
+                print("Email already exists.")
                 return jsonify({"error": "Email này đã được sử dụng."}), 409
 
+        print("Hashing password...")
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-        cursor.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-                       (username, email, hashed_password))
+        
+        print("Inserting new user...")
+        # Thêm 'phone', 'role', 'status' và 'registered_at' vào câu lệnh INSERT
+        cursor.execute(
+            "INSERT INTO users (username, email, password, phone, role, status, registered_at) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, role, status, registered_at",
+            (username, email, hashed_password, phone, role, status, registered_at)
+        )
+        
+        user_row = cursor.fetchone()
+        if user_row:
+            user_id = user_row['id']
+            user_role = user_row['role']
+            user_status = user_row['status']
+            user_registered_at = user_row['registered_at'].strftime('%Y-%m-%d %H:%M:%S') # Định dạng lại để trả về
+            print(f"User inserted with ID: {user_id}, Role: {user_role}, Status: {user_status}, Registered At: {user_registered_at}")
+        else:
+            print("Error: No user ID or role returned after insert.")
+            raise Exception("Failed to retrieve user ID and role after registration.")
+
         db.commit()
-        return jsonify({"message": "Đăng ký thành công!"}), 201
-    except Exception as e:
-        db.rollback()
-        print(f"Lỗi khi đăng ký người dùng: {e}")
+        print("DB committed.")
+        
+        return jsonify({
+            "message": "Đăng ký thành công!", 
+            "user_id": user_id, 
+            "username": username, 
+            "role": user_role,
+            "status": user_status,
+            "registered_at": user_registered_at
+        }), 201
+    except psycopg2.IntegrityError as e:
+        if db:
+            db.rollback()
+        print(f"Lỗi khi đăng ký người dùng (IntegrityError): {e}")
+        if "users_username_key" in str(e):
+            return jsonify({"error": "Tên người dùng này đã tồn tại."}), 409
+        elif "users_email_key" in str(e):
+            return jsonify({"error": "Email này đã được sử dụng."}), 409
+        else:
+            return jsonify({"error": "Đăng ký thất bại do dữ liệu không hợp lệ."}), 400
+    except psycopg2.Error as e:
+        if db:
+            db.rollback()
+        print(f"Lỗi khi đăng ký người dùng (PostgreSQL Error): {e}")
         return jsonify({"error": "Đăng ký thất bại. Vui lòng thử lại."}), 500
+    except Exception as e:
+        if db:
+            db.rollback()
+        print(f"Lỗi khi đăng ký người dùng: Type: {type(e)}, Value: {e}")
+        return jsonify({"error": "Đăng ký thất bại. Vui lòng thử lại."}), 500
+
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    username_or_email = data.get('username') # Frontend gửi là 'username'
+    username_or_email = data.get('username')
     password = data.get('password')
 
     if not username_or_email or not password:
         return jsonify({"error": "Tên người dùng/email và mật khẩu là bắt buộc."}), 400
 
     db = get_db()
-    cursor = db.cursor()
+    # Sử dụng RealDictCursor để truy cập kết quả theo tên cột
+    cursor = db.cursor(cursor_factory=RealDictCursor)
 
-    # Thử tìm theo username
-    cursor.execute("SELECT id, username, email, password FROM users WHERE username = ?", (username_or_email,))
-    user = cursor.fetchone()
-
-    # Nếu không tìm thấy theo username, thử tìm theo email
-    if not user:
-        cursor.execute("SELECT id, username, email, password FROM users WHERE email = ?", (username_or_email,))
+    try:
+        # Thử tìm theo username
+        cursor.execute("SELECT id, username, email, password, role FROM users WHERE username = %s", (username_or_email,))
         user = cursor.fetchone()
 
-    if user and check_password_hash(user['password'], password):
-        return jsonify({"message": "Đăng nhập thành công!", "user_id": user['id'], "username": user['username']}), 200
-    else:
-        return jsonify({"error": "Tên người dùng/email hoặc mật khẩu không chính xác."}), 401
+        # Nếu không tìm thấy theo username, thử tìm theo email
+        if not user:
+            cursor.execute("SELECT id, username, email, password, role FROM users WHERE email = %s", (username_or_email,))
+            user = cursor.fetchone()
+
+        if user and check_password_hash(user['password'], password):
+            # Trả về role trong phản hồi đăng nhập
+            return jsonify({"message": "Đăng nhập thành công!", "user_id": user['id'], "username": user['username'], "role": user['role']}), 200
+        else:
+            return jsonify({"error": "Tên người dùng/email hoặc mật khẩu không chính xác."}), 401
+    except psycopg2.Error as e:
+        print(f"Lỗi PostgreSQL khi đăng nhập: {e}")
+        return jsonify({"error": "Đã xảy ra lỗi hệ thống khi đăng nhập. Vui lòng thử lại sau."}), 500
+    except Exception as e:
+        print(f"Lỗi khi đăng nhập: {e}")
+        return jsonify({"error": "Đã xảy ra lỗi không mong muốn khi đăng nhập. Vui lòng thử lại sau."}), 500
 
 # --- Endpoint QUÊN MẬT KHẨU MỚI ---
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
     data = request.get_json()
-    username_or_email = data.get('email') # Frontend gửi là 'email' từ trường nhập liệu chung
+    username_or_email = data.get('email')
 
     if not username_or_email:
         return jsonify({"error": "Vui lòng nhập tên người dùng hoặc địa chỉ email của bạn."}), 400
 
     db = get_db()
-    cursor = db.cursor()
+    cursor = db.cursor(cursor_factory=RealDictCursor) # Đảm bảo sử dụng RealDictCursor
 
     try:
         # Thử tìm người dùng bằng username HOẶC email
-        cursor.execute("SELECT id, username, email FROM users WHERE username = ? OR email = ?",
+        cursor.execute("SELECT id, username, email FROM users WHERE username = %s OR email = %s",
                        (username_or_email, username_or_email))
         user = cursor.fetchone()
 
@@ -147,7 +223,7 @@ def forgot_password():
         hashed_new_password = generate_password_hash(new_password, method='pbkdf2:sha256')
 
         # Cập nhật mật khẩu mới vào CSDL
-        cursor.execute("UPDATE users SET password = ? WHERE id = ?", (hashed_new_password, user_id))
+        cursor.execute("UPDATE users SET password = %s WHERE id = %s", (hashed_new_password, user_id))
         db.commit()
 
         # Gửi email cho người dùng
@@ -160,7 +236,7 @@ def forgot_password():
         </body>
         </html>
         """
-        email_sent = send_email(user_email, subject, email_body) # <<< Gửi đến user_email từ CSDL
+        email_sent = send_email(user_email, subject, email_body)
 
         if email_sent:
             return jsonify({"message": "Nếu thông tin bạn cung cấp tồn tại trong hệ thống, chúng tôi sẽ gửi mật khẩu mới đến email liên kết."}), 200
@@ -168,6 +244,10 @@ def forgot_password():
             print(f"Lỗi: Không thể gửi email cho {user_email} sau khi đặt lại mật khẩu.")
             return jsonify({"message": "Nếu thông tin bạn cung cấp tồn tại trong hệ thống, chúng tôi sẽ gửi mật khẩu mới đến email liên kết. Tuy nhiên, đã xảy ra lỗi khi gửi email."}), 200
 
+    except psycopg2.Error as e:
+        db.rollback()
+        print(f"Lỗi PostgreSQL trong quá trình quên mật khẩu: {e}")
+        return jsonify({"error": "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau."}), 500
     except Exception as e:
         db.rollback()
         print(f"Lỗi trong quá trình quên mật khẩu: {e}")
@@ -177,9 +257,9 @@ def forgot_password():
 @auth_bp.route('/user_info/<int:user_id>', methods=['GET'])
 def get_user_info(user_id):
     db = get_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT username, email FROM users WHERE id = ?", (user_id,))
+    cursor = db.cursor(cursor_factory=RealDictCursor) # Đảm bảo sử dụng RealDictCursor
+    cursor.execute("SELECT username, email, role, phone FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
     if user:
-        return jsonify({"username": user['username'], "email": user['email']}), 200
+        return jsonify({"username": user['username'], "email": user['email'], "role": user['role'], "phone": user['phone']}), 200
     return jsonify({"error": "Người dùng không tìm thấy."}), 404

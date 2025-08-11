@@ -65,7 +65,7 @@
 }
 
 .Form_Image .image-result img {
-  max-width: 100%;
+  max-width: 500px;
   height: auto;
   border: 1px solid #ddd;
   border-radius: 4px;

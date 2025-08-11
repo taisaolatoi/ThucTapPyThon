@@ -1,82 +1,36 @@
-import base64
 import io
+import base64
 import os
 import time
-import sqlite3 # Import sqlite3
-import datetime # Import datetime for timestamp
+import json
+import uuid
 
 import requests
 from PIL import Image, ImageDraw, ImageFont
 from googletrans import Translator
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 
-# --- Configuration ---
-# Set your API Keys here.
-# IMPORTANT: In a real production environment, consider loading these from environment variables
-# (e.g., using os.getenv) instead of hardcoding them).
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+from database import get_db_connection
+
 STABILITY_API_KEY = "sk-ywpUdhApv5lO5F5PmWS1XdJeLJXVvqZQvBJ209dMIY2u5aPk"
 SEGMENT_API_KEY = "SG_242151dd1a4024a5"
 
-# Tạo Blueprint cho chức năng tạo ảnh và chat
 image_bp = Blueprint('image_generation', __name__, url_prefix='/api')
 
-# --- Database functions (moved from database.py) ---
-DATABASE_NAME = 'chatbot.db'
-
-def get_db_connection():
-    """
-    Kết nối đến cơ sở dữ liệu SQLite và cấu hình row_factory để trả về các hàng
-    dưới dạng sqlite3.Row (cho phép truy cập cột bằng tên).
-    """
-    conn = sqlite3.connect(DATABASE_NAME)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def add_message(session_id, sender, text=None, image_data=None):
-    """
-    Thêm một tin nhắn mới vào bảng messages.
-    Có thể là tin nhắn văn bản hoặc tin nhắn có kèm ảnh.
-    """
-    if text is None and image_data is None:
-        print("Lỗi: Tin nhắn phải có ít nhất văn bản hoặc dữ liệu ảnh.")
-        return None
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(
-            "INSERT INTO messages (session_id, sender, text, image_data) VALUES (?, ?, ?, ?)",
-            (session_id, sender, text, image_data)
-        )
-        conn.commit()
-        return cursor.lastrowid
-    except sqlite3.Error as e:
-        print(f"Lỗi SQLite khi thêm tin nhắn: {e}")
-        conn.rollback()
-        return None
-    finally:
-        conn.close()
-
-# --- Quản lý kết nối cơ sở dữ liệu với Flask 'g' ---
 def get_db():
-    """
-    Lấy kết nối cơ sở dữ liệu từ đối tượng 'g' của Flask.
-    Nếu chưa có, tạo một kết nối mới.
-    """
     if 'db' not in g:
-        g.db = get_db_connection() # Sử dụng hàm cục bộ get_db_connection
+        g.db = get_db_connection()
     return g.db
 
 @image_bp.teardown_app_request
 def teardown_db(exception):
-    """
-    Đóng kết nối cơ sở dữ liệu sau mỗi yêu cầu.
-    """
     db = g.pop('db', None)
     if db is not None:
         db.close()
 
-# Dịch prompt tiếng Việt sang tiếng Anh
 def translate_prompt(viet_prompt):
     translator = Translator()
     try:
@@ -84,9 +38,8 @@ def translate_prompt(viet_prompt):
         return eng_prompt
     except Exception as e:
         print(f"Error translating prompt: {e}")
-        return viet_prompt # Fallback to original prompt if translation fails
+        return viet_prompt
 
-# Gọi Stability.ai API để tạo hình ảnh
 def generate_image_from_sdxl(prompt, style=None, engine_id="stable-diffusion-xl-1024-v1-0", cfg_scale=7, steps=30, seed=None, negative_prompt=None):
     if style:
         prompt = f"{prompt}, style: {style}"
@@ -119,17 +72,16 @@ def generate_image_from_sdxl(prompt, style=None, engine_id="stable-diffusion-xl-
 
     try:
         response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+        response.raise_for_status()
         return Image.open(io.BytesIO(response.content))
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 402: # This is the "insufficient_balance" case
+        if e.response.status_code == 402:
             raise Exception(f"API đã hết credit. Vui lòng kiểm tra tài khoản Stability.ai của bạn. Chi tiết: {e.response.text}")
         else:
             raise Exception(f"Stability.ai API Error: {e.response.status_code}, {e.response.text}")
     except requests.exceptions.RequestException as e:
         raise Exception(f"Lỗi kết nối đến Stability.ai API: {str(e)}")
 
-# Gọi Flux.1 Schnell API từ Segmind
 def generate_image_from_flux(prompt, style=None):
     if style:
         prompt = f"{prompt}, style: {style}"
@@ -147,17 +99,16 @@ def generate_image_from_flux(prompt, style=None):
 
     try:
         response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+        response.raise_for_status()
         return Image.open(io.BytesIO(response.content))
     except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 429: # This is the "Too Many Requests" case for Flux
+        if e.response.status_code == 429:
             raise Exception(f"API Flux đã đạt giới hạn yêu cầu. Vui lòng đợi 5 phút trước khi thử lại hoặc chọn model AI khác. Chi tiết: {e.response.text}")
         else:
             raise Exception(f"Lỗi API Flux: {e.response.status_code}. Vui lòng thử lại sau hoặc chọn model AI khác. Chi tiết: {e.response.text}")
     except requests.exceptions.RequestException as e:
         raise Exception(f"Lỗi kết nối đến Flux API: {str(e)}")
 
-# Lấy danh sách engine_id từ API Stability.ai
 def get_available_engines():
     url = "https://api.stability.ai/v1/engines/list"
     headers = {
@@ -170,7 +121,6 @@ def get_available_engines():
         engines = response.json()
         return engines
     except requests.exceptions.RequestException:
-        # Fallback to a default list if there's a connection error or API error
         return [
             {"id": "stable-diffusion-xl-1024-v1-0", "name": "Stable Diffusion XL v1.0"},
             {"id": "stable-diffusion-v1-6", "name": "Stable Diffusion v1.6"}
@@ -181,168 +131,259 @@ def get_available_engines():
 @image_bp.route('/generate-image', methods=['POST'])
 def generate_image():
     data = request.get_json()
-    user_id = data.get('user_id') # Lấy user_id từ request
-    session_id = data.get('session_id') # Lấy session_id từ request (có thể là None)
+    user_id = data.get('user_id')
+    # Đảm bảo dòng này không bị comment hoặc bị xóa
+    session_id = data.get('session_id') # Lấy session_id từ request, có thể là None
+
     viet_prompt = data.get('prompt')
     style = data.get('style', 'design')
     engine_id = data.get('engine_id', 'stable-diffusion-xl-1024-v1-0')
 
     if not viet_prompt:
         return jsonify({"error": "Prompt là bắt buộc."}), 400
-    if not user_id: # user_id vẫn là bắt buộc để liên kết với phiên
+    if not user_id:
         return jsonify({"error": "user_id là bắt buộc."}), 400
 
-    db = get_db() # Lấy kết nối DB
-    cursor = db.cursor()
+    db = get_db()
+    cursor = db.cursor(cursor_factory=RealDictCursor)
+    image_generation_id = None
 
     try:
-        # Nếu session_id không được cung cấp, tạo một phiên mới
-        if not session_id:
-            initial_title = viet_prompt[:50] + "..." if len(viet_prompt) > 50 else viet_prompt
-            cursor.execute("INSERT INTO chat_sessions (user_id, title) VALUES (?, ?)", (user_id, initial_title))
-            session_id = cursor.lastrowid
-            db.commit()
-            print(f"Đã tạo phiên chat mới cho ảnh với ID: {session_id}")
+        # Logic tạo chat_sessions đã bị loại bỏ như bạn yêu cầu
+        # Các bản ghi tạo ảnh giờ đây độc lập với chat sessions
+
+        # INSERT statement đã được sửa để không còn chèn session_id vào image_generations
+        cursor.execute(
+            "INSERT INTO image_generations (user_id, prompt, style, engine_id, status) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            (user_id, viet_prompt, style, engine_id, 'pending')
+        )
+        image_generation_id = cursor.fetchone()['id']
+        db.commit()
+        print(f"Đã tạo bản ghi image_generations ban đầu với ID: {image_generation_id}")
 
         eng_prompt = translate_prompt(viet_prompt)
 
-        # Lưu tin nhắn của người dùng vào DB
-        add_message(session_id, "user", viet_prompt) # Sử dụng hàm add_message cục bộ
-
         image = None
-        img_str = None
 
         if engine_id == "flux-schnell":
             image = generate_image_from_flux(eng_prompt, style)
         else:
             image = generate_image_from_sdxl(eng_prompt, style, engine_id)
 
-        # Convert PIL Image to Base64
-        buffered = io.BytesIO()
-        image.save(buffered, format="PNG")
-        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        filename = f"{uuid.uuid4()}.png"
 
-        # Lưu tin nhắn của AI (bao gồm ảnh) vào DB
-        ai_response_text = f"Đã tạo ảnh với prompt: '{viet_prompt}' và style: '{style}' sử dụng {engine_id}."
-        add_message(session_id, "ai", ai_response_text, image_data=img_str) # Sử dụng hàm add_message cục bộ
+        GENERATED_IMAGES_FOLDER = os.path.join(current_app.root_path, 'static', 'generated_images')
+        
+        os.makedirs(GENERATED_IMAGES_FOLDER, exist_ok=True)
+        print(f"Đảm bảo thư mục lưu ảnh tồn tại: {GENERATED_IMAGES_FOLDER}")
 
+        file_path = os.path.join(GENERATED_IMAGES_FOLDER, filename)
+        
+        image.save(file_path, format="PNG")
+        print(f"Ảnh đã được lưu tại: {file_path}")
+
+        image_url = f"/static/generated_images/{filename}"
+        print(f"URL ảnh được lưu vào DB: {image_url}")
+
+        cursor.execute(
+            "UPDATE image_generations SET generated_image_data = %s, status = %s WHERE id = %s",
+            (image_url, 'success', image_generation_id)
+        )
+        db.commit()
+        print(f"Đã cập nhật bản ghi image_generations ID {image_generation_id} với URL ảnh và trạng thái thành công.")
+
+        # session_id vẫn được trả về, ngay cả khi nó là None
         return jsonify({
-            "image_base64": img_str,
+            "image_url": image_url,
             "prompt": viet_prompt,
             "style": style,
             "engine_id": engine_id,
-            "session_id": session_id # Luôn trả về session_id (có thể là mới tạo)
+            "session_id": session_id # Đảm bảo biến này đã được định nghĩa
         })
     except Exception as e:
         error_message = str(e)
-        # Lưu lỗi vào DB nếu có thể
-        if session_id: # Chỉ lưu lỗi nếu có session_id hợp lệ
-            add_message(session_id, "ai", f"Lỗi khi tạo ảnh: {error_message}") # Sử dụng hàm add_message cục bộ
-            pass
-
-        # Kiểm tra các thông báo lỗi cụ thể từ các hàm tạo ảnh
-        if "API đã hết credit" in error_message or "insufficient_balance" in error_message:
-            return jsonify({"error": "Tài khoản Stability.ai của bạn đã hết số dư/credit. Vui lòng nạp thêm để tiếp tục sử dụng các model Stable Diffusion."}), 402 # 402 Payment Required
-        elif "API Flux đã đạt giới hạn yêu cầu" in error_message:
-            return jsonify({"error": "API Flux đã đạt giới hạn yêu cầu (Too Many Requests). Vui lòng đợi một lát hoặc chọn model AI khác."}), 429 # 429 Too Many Requests
-        elif "Lỗi kết nối" in error_message:
-            return jsonify({"error": f"Lỗi kết nối đến API. Vui lòng kiểm tra kết nối mạng của bạn: {error_message}"}), 503 # 503 Service Unavailable
+        print(f"Lỗi khi tạo ảnh: {error_message}")
+        if image_generation_id:
+            try:
+                cursor.execute(
+                    "UPDATE image_generations SET status = %s, error_message = %s WHERE id = %s",
+                    ('failed', error_message, image_generation_id)
+                )
+                db.commit()
+                print(f"Đã cập nhật bản ghi image_generations ID {image_generation_id} với trạng thái thất bại.")
+            except Exception as update_e:
+                print(f"Lỗi khi cập nhật trạng thái thất bại cho image_generations: {update_e}")
+                if db: db.rollback()
         else:
-            # Các lỗi khác không xác định
+            print("Lỗi xảy ra trước khi tạo bản ghi image_generations.")
+        
+        if "API đã hết credit" in error_message or "insufficient_balance" in error_message:
+            return jsonify({"error": "Tài khoản Stability.ai của bạn đã hết số dư/credit. Vui lòng nạp thêm để tiếp tục sử dụng các model Stable Diffusion."}), 402
+        elif "API Flux đã đạt giới hạn yêu cầu" in error_message:
+            return jsonify({"error": "API Flux đã đạt giới hạn yêu cầu (Too Many Requests). Vui lòng đợi một lát hoặc chọn model AI khác."}), 429
+        elif "Lỗi kết nối" in error_message:
+            return jsonify({"error": f"Lỗi kết nối đến API. Vui lòng kiểm tra kết nối mạng của bạn: {error_message}"}), 503
+        else:
             return jsonify({"error": f"Đã xảy ra lỗi không mong muốn: {error_message}"}), 500
 
 @image_bp.route('/available-models', methods=['GET'])
 def get_models():
     available_models = get_available_engines()
-    # Add Flux model to the list
     available_models.append({"id": "flux-schnell", "name": "Flux.1 Schnell (Segmind)"})
     return jsonify(available_models)
 
+@image_bp.route('/image-history', methods=['GET'])
+def get_image_history():
+    user_id = request.args.get('user_id')
+    session_id = request.args.get('session_id') # Optional: if you want history per session
 
-# --- Các hàm quản lý chat ---
+    if not user_id:
+        return jsonify({"error": "User ID is required to fetch image history."}), 400
 
-@image_bp.route('/chat/history/<int:session_id>', methods=['GET'])
-def get_session_history(session_id):
-    """
-    Lấy lịch sử tin nhắn của một phiên chat cụ thể, bao gồm dữ liệu ảnh.
-    """
     db = get_db()
-    cursor = db.cursor()
+    cursor = db.cursor(cursor_factory=RealDictCursor)
+    images = []
+
     try:
-        cursor.execute("SELECT sender, text, image_data, timestamp FROM messages WHERE session_id = ? ORDER BY timestamp ASC", (session_id,))
-        messages = cursor.fetchall()
+        # Nếu cột session_id không còn trong image_generations, bạn có thể bỏ phần này
+        # hoặc đảm bảo nó là nullable và không được dùng để lọc nếu ảnh mới không có session_id
+        query = "SELECT id,user_id, prompt, style, engine_id, generated_image_data AS image_url, status, error_message, created_at FROM image_generations WHERE user_id = %s"
+        params = [user_id]
+
+        if session_id: # Phần này sẽ chỉ lọc các ảnh có session_id nếu cột đó tồn tại và có dữ liệu
+            query += " AND session_id = %s"
+            params.append(session_id)
+
+        query += " ORDER BY created_at DESC"
+
+        cursor.execute(query, params)
+        images = cursor.fetchall()
+
+        return jsonify(images), 200
+    except Exception as e:
+        print(f"Error fetching image history: {e}")
+        return jsonify({"error": f"Failed to fetch image history: {str(e)}"}), 500
+
+@image_bp.route('/delete-image/<int:image_id>', methods=['DELETE'])
+def delete_image(image_id):
+    user_id = request.args.get('user_id')
+    
+    if not user_id:
+        return jsonify({"error": "User ID is required for deletion."}), 400
+
+    db = get_db()
+    cursor = db.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cursor.execute("SELECT generated_image_data FROM image_generations WHERE id = %s AND user_id = %s", (image_id, user_id))
+        image_record = cursor.fetchone()
+
+        if not image_record:
+            return jsonify({"error": "Image not found or you do not have permission to delete it."}), 404
+
+        image_url = image_record['generated_image_data']
         
-        history_data = []
-        for msg in messages:
-            msg_dict = dict(msg)
-            # Nếu có dữ liệu ảnh, tạo URL base64 cho client
-            if msg_dict['image_data']:
-                msg_dict['image_url'] = f"data:image/png;base64,{msg_dict['image_data']}"
-            # Xóa image_data thô khỏi phản hồi JSON nếu không muốn gửi nó trực tiếp
-            del msg_dict['image_data'] 
-            history_data.append(msg_dict)
+        cursor.execute("DELETE FROM image_generations WHERE id = %s AND user_id = %s", (image_id, user_id))
+        db.commit()
 
-        return jsonify(history_data), 200
+        app_root = current_app.root_path
+        
+        relative_path = image_url.lstrip('/') 
+        file_path = os.path.join(app_root, relative_path)
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"Đã xóa file ảnh vật lý: {file_path}")
+        else:
+            print(f"Cảnh báo: File ảnh vật lý không tồn tại tại đường dẫn: {file_path}")
+
+        return jsonify({"message": "Image deleted successfully."}), 200
+
     except Exception as e:
-        print(f"Lỗi khi lấy lịch sử chat: {e}")
-        return jsonify({"error": f"Không thể lấy lịch sử chat: {e}"}), 500
+        db.rollback()
+        print(f"Lỗi khi xóa ảnh: {e}")
+        return jsonify({"error": f"Failed to delete image: {str(e)}"}), 500
 
-@image_bp.route('/chat/sessions/<int:user_id>', methods=['GET'])
-def get_user_sessions(user_id):
-    """
-    Lấy tất cả các phiên chat của một người dùng cụ thể.
-    """
+@image_bp.route('/admin/image-history/all', methods=['GET'])
+def get_all_image_history_endpoint():
+    """Endpoint để admin lấy tất cả lịch sử các hình ảnh đã tạo từ mọi người dùng."""
     db = get_db()
-    cursor = db.cursor()
+    cursor = db.cursor(cursor_factory=RealDictCursor)
+    images = []
+
     try:
-        cursor.execute("SELECT id, title, created_at FROM chat_sessions WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
-        sessions = cursor.fetchall()
+        # Truy vấn tất cả các bản ghi hình ảnh mà không lọc theo user_id
+        query = """
+        SELECT 
+            ig.id, 
+            ig.prompt, 
+            ig.user_id,
+            ig.style, 
+            ig.engine_id, 
+            ig.generated_image_data AS image_url, 
+            ig.status, 
+            ig.error_message, 
+            ig.created_at,
+            u.username as user_name -- Lấy tên người dùng
+        FROM 
+            image_generations ig
+        JOIN
+            users u ON ig.user_id = u.id
+        ORDER BY 
+            ig.created_at DESC
+        """
+        cursor.execute(query)
+        images = cursor.fetchall()
 
-        sessions_data = []
-        for session in sessions:
-            session_dict = dict(session)
-            cursor.execute("SELECT COUNT(*) FROM messages WHERE session_id = ?", (session['id'],))
-            msg_count = cursor.fetchone()[0]
-            session_dict['message_count'] = msg_count
-            sessions_data.append(session_dict)
+        # Định dạng created_at thành chuỗi để gửi về frontend
+        for img in images:
+            if 'created_at' in img and img['created_at']:
+                img['created_at'] = img['created_at'].strftime('%Y-%m-%d %H:%M:%S')
 
-        return jsonify(sessions_data), 200
+        return jsonify(images), 200
     except Exception as e:
-        print(f"Lỗi khi lấy các phiên chat của người dùng: {e}")
-        return jsonify({"error": f"Không thể lấy các phiên chat: {e}"}), 500
+        print(f"Lỗi khi lấy tất cả lịch sử hình ảnh (Admin): {e}")
+        return jsonify({"error": f"Không thể lấy tất cả lịch sử hình ảnh: {str(e)}"}), 500
 
-@image_bp.route('/chat/session/<int:session_id>', methods=['DELETE'])
-def delete_chat_session(session_id):
-    """
-    Xóa một phiên chat cụ thể và tất cả tin nhắn liên quan.
-    """
+@image_bp.route('/delete-image/<int:image_id>', methods=['DELETE'])
+def delete_image_endpoint(image_id):
+    """Endpoint để xóa một hình ảnh đã tạo khỏi DB và file vật lý."""
+    user_id = request.args.get('user_id')
+    
+    if not user_id:
+        return jsonify({"error": "User ID là bắt buộc để xóa."}), 400
+
     db = get_db()
-    cursor = db.cursor()
-    try:
-        # Bắt đầu giao dịch
-        db.execute("BEGIN TRANSACTION")
-        cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
-        cursor.execute("DELETE FROM chat_sessions WHERE id = ?", (session_id,))
-        db.commit() # Kết thúc giao dịch và lưu thay đổi
-        return jsonify({"message": f"Phiên chat {session_id} đã được xóa thành công."}), 200
-    except Exception as e:
-        print(f"Lỗi khi xóa phiên chat: {e}")
-        db.rollback() # Hoàn tác nếu có lỗi
-        return jsonify({"error": "Không thể xóa phiên chat."}), 500
+    cursor = db.cursor(cursor_factory=RealDictCursor)
 
-# Bạn có thể thêm một endpoint để thêm tin nhắn văn bản thông thường nếu cần.
-# @image_bp.route('/chat/message', methods=['POST'])
-# def add_chat_message():
-#     data = request.get_json()
-#     session_id = data.get('session_id')
-#     sender = data.get('sender') # 'user' or 'ai'
-#     text = data.get('text')
-#
-#     if not session_id or not sender or not text:
-#         return jsonify({"error": "session_id, sender, và text là bắt buộc."}), 400
-#
-#     message_id = add_message(session_id, sender, text)
-#     if message_id:
-#         return jsonify({"message": "Tin nhắn đã được thêm thành công.", "message_id": message_id}), 201
-#     else:
-#         return jsonify({"error": "Không thể thêm tin nhắn."}), 500
+    try:
+        # Kiểm tra xem ảnh có tồn tại và thuộc về người dùng hiện tại không
+        cursor.execute("SELECT generated_image_data FROM image_generations WHERE id = %s AND user_id = %s", (image_id, user_id))
+        image_record = cursor.fetchone()
+
+        if not image_record:
+            return jsonify({"error": "Không tìm thấy hình ảnh hoặc bạn không có quyền xóa."}), 404
+
+        image_url = image_record['generated_image_data']
+        
+        # Xóa bản ghi khỏi cơ sở dữ liệu
+        cursor.execute("DELETE FROM image_generations WHERE id = %s AND user_id = %s", (image_id, user_id))
+        db.commit()
+
+        # Xóa file ảnh vật lý
+        app_root = current_app.root_path
+        relative_path = image_url.lstrip('/') 
+        file_path = os.path.join(app_root, relative_path)
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"Đã xóa file ảnh vật lý: {file_path}")
+        else:
+            print(f"Cảnh báo: File ảnh vật lý không tồn tại tại đường dẫn: {file_path}")
+
+        return jsonify({"message": "Hình ảnh đã được xóa thành công."}), 200
+
+    except Exception as e:
+        db.rollback()
+        print(f"Lỗi khi xóa ảnh: {e}")
+        return jsonify({"error": f"Không thể xóa hình ảnh: {str(e)}"}), 500

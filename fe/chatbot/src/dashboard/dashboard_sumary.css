@@ -1,0 +1,158 @@
+/* src/components/dashboard_components/DashboardSummary.css */
+.dashboard-summary-container {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 24px;
+}
+
+.error-message {
+    text-align: center;
+    font-size: 1.25rem;
+    color: #dc2626;
+    background-color: #fee2e2;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.summary-card {
+    background-color: #f0f8ff; /* Light blue background */
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.card-icon svg {
+    width: 40px;
+    height: 40px;
+    color: #1d45b6; /* Main blue color */
+}
+
+.summary-card h4 {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.card-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #1d45b6; /* Main blue color */
+    margin-bottom: 15px;
+}
+
+.card-action-btn {
+    padding: 8px 16px;
+    background-color: #1d45b6; /* Main blue color */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+}
+
+.card-action-btn:hover {
+    background-color: #163a9e; /* Darker blue on hover */
+}
+
+.recent-activity-section h3 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.activity-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-type {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #555;
+    min-width: 120px; /* Ensure space for icon and text */
+}
+
+.activity-text {
+    flex-grow: 1;
+    font-size: 1rem;
+    color: #444;
+    margin: 0 10px;
+}
+
+.activity-time {
+    font-size: 0.9rem;
+    color: #888;
+    white-space: nowrap;
+}
+
+/* Loading states */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #6b7280;
+}
+
+.loading-spinner-icon {
+    animation: spin 1s linear infinite;
+    color: #1d45b6; /* Main blue color */
+    height: 2.5rem;
+    width: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Placeholder for card values during loading */
+.loading-spinner {
+    width: 50px; /* Adjust size as needed */
+    height: 1.2em; /* Match font height */
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.no-activity-message {
+    text-align: center;
+    color: #6b7280;
+    padding: 2rem;
+}

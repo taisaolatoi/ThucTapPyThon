@@ -10,6 +10,7 @@ const AuthPage = ({ onLoginSuccess }) => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [username, setUsername] = useState(''); // Dùng cho trường username khi đăng ký
+    const [phone, setPhone] = useState(''); // Dùng cho trường phone khi đăng ký
 
     // Thêm các state để quản lý thông báo và trạng thái loading
     const [message, setMessage] = useState('');
@@ -23,6 +24,7 @@ const AuthPage = ({ onLoginSuccess }) => {
         setIsLoading(false);
         setEmail('');
         setPassword('');
+        setPhone('');
         setConfirmPassword('');
         setUsername('');
     };
@@ -46,7 +48,9 @@ const AuthPage = ({ onLoginSuccess }) => {
             if (response.ok) {
                 setMessage(data.message);
                 console.log('User data:', data);
-                onLoginSuccess(data.user_id, data.username);
+                // Cập nhật: Truyền thêm 'role' từ dữ liệu phản hồi của API
+                // Giả định API trả về 'role' trong đối tượng data, ví dụ: { user_id: 1, username: 'test', role: 0, message: 'Login successful' }
+                onLoginSuccess(data.user_id, data.username, data.role);
             } else {
                 setError(data.error);
             }
@@ -75,7 +79,7 @@ const AuthPage = ({ onLoginSuccess }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username: username, email: email, password }), // Gửi cả username và email
+                body: JSON.stringify({ username: username, email: email, password, phone }), // Gửi cả username và email
             });
 
             const data = await response.json();
@@ -202,16 +206,16 @@ const AuthPage = ({ onLoginSuccess }) => {
                                         {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                                     </button>
                                 </div>
+                                <div className="signup-link">
+                                    Chưa có tài khoản?{' '}
+                                    <button type="button" onClick={() => {
+                                        setMode('register');
+                                        resetFormStates(); // Reset trạng thái khi chuyển mode
+                                    }} className="link-text" disabled={isLoading}>
+                                        Đăng ký
+                                    </button>
+                                </div>
                             </form>
-                            <div className="signup-link">
-                                Chưa có tài khoản?{' '}
-                                <button type="button" onClick={() => {
-                                    setMode('register');
-                                    resetFormStates(); // Reset trạng thái khi chuyển mode
-                                }} className="link-text" disabled={isLoading}>
-                                    Đăng ký
-                                </button>
-                            </div>
                         </>
                     )}
 
@@ -250,6 +254,23 @@ const AuthPage = ({ onLoginSuccess }) => {
                                         disabled={isLoading}
                                     />
                                 </div>
+                                <div className="form-group">
+                                    <label htmlFor="password-register" className="form-label">
+                                        Số điện thoại
+                                    </label>
+                                    <input
+                                        type="phone"
+                                        id="phone"
+                                        name="phone"
+                                        className="form-input"
+                                        placeholder="Nhập số điện thoại"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        required
+                                        disabled={isLoading}
+                                    />
+                                </div>
+
                                 <div className="form-group">
                                     <label htmlFor="password-register" className="form-label">
                                         Mật khẩu
