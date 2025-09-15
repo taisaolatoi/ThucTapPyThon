@@ -202,7 +202,7 @@ def forgot_password():
     cursor = db.cursor(cursor_factory=RealDictCursor) # Đảm bảo sử dụng RealDictCursor
 
     try:
-        # Thử tìm người dùng bằng username HOẶC email
+        # Thử tìm người dùng bằng username HOẶc email
         cursor.execute("SELECT id, username, email FROM users WHERE username = %s OR email = %s",
                        (username_or_email, username_or_email))
         user = cursor.fetchone()
@@ -226,13 +226,28 @@ def forgot_password():
         cursor.execute("UPDATE users SET password = %s WHERE id = %s", (hashed_new_password, user_id))
         db.commit()
 
-        # Gửi email cho người dùng
-        subject = "Đặt lại mật khẩu của bạn cho ứng dụng Chat AI"
+        # Gửi email cho người dùng với giao diện đẹp hơn
+        subject = "Yêu cầu đặt lại mật khẩu cho ứng dụng Chat AI"
         email_body = f"""
         <html>
-        <body>
-            <p>Xin chào <strong>{username}</strong>,</p>
-            <p>Mật khẩu mới của bạn cho ứng dụng Chat AI là: <strong>{new_password}</strong></p>
+        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
+            <div style="width: 100%; max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+                <div style="background-color: #6a5acd; color: #ffffff; padding: 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; text-align: center;">
+                    <h1 style="margin: 0;">Chat AI</h1>
+                </div>
+                <div style="padding: 20px;">
+                    <p>Xin chào <strong>{username}</strong>,</p>
+                    <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. Mật khẩu mới của bạn là:</p>
+                    <div style="background-color: #e8eaf6; padding: 15px; text-align: center; border-radius: 5px; margin: 20px 0;">
+                        <span style="font-size: 24px; font-weight: bold; color: #3f51b5;">{new_password}</span>
+                    </div>
+                    <p>Để đảm bảo an toàn, vui lòng đăng nhập và đổi mật khẩu này ngay sau khi đăng nhập thành công.</p>
+                    <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+                </div>
+                <div style="text-align: center; padding: 20px; font-size: 12px; color: #888888;">
+                    <p>&copy; 2024 Chat AI. Tất cả các quyền được bảo lưu.</p>
+                </div>
+            </div>
         </body>
         </html>
         """
@@ -263,3 +278,179 @@ def get_user_info(user_id):
     if user:
         return jsonify({"username": user['username'], "email": user['email'], "role": user['role'], "phone": user['phone']}), 200
     return jsonify({"error": "Người dùng không tìm thấy."}), 404
+
+
+@auth_bp.route('/change-password/<int:user_id>', methods=['PUT'])
+def change_password(user_id):
+    data = request.get_json()
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    if not old_password or not new_password:
+        return jsonify({"error": "Vui lòng nhập đầy đủ mật khẩu cũ và mới."}), 400
+
+    db = get_db()
+    cursor = db.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cursor.execute("SELECT password FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+
+        if not user:
+            return jsonify({"error": "Người dùng không tìm thấy."}), 404
+
+        if not check_password_hash(user['password'], old_password):
+            return jsonify({"error": "Mật khẩu cũ không chính xác."}), 401
+
+        hashed_new_password = generate_password_hash(new_password, method='pbkdf2:sha256')
+        cursor.execute("UPDATE users SET password = %s WHERE id = %s", (hashed_new_password, user_id))
+        db.commit()
+
+        return jsonify({"message": "Đổi mật khẩu thành công!"}), 200
+
+    except Exception as e:
+        db.rollback()
+        print(f"Lỗi khi đổi mật khẩu: {e}")
+        return jsonify({"error": "Đổi mật khẩu thất bại. Vui lòng thử lại."}), 500
+
+@auth_bp.route('/update-profile/<int:user_id>', methods=['PUT'])
+def update_profile(user_id):
+    data = request.get_json()
+    email = data.get('email')
+    phone = data.get('phone')
+
+    if not email or not phone:
+        return jsonify({"error": "Email và số điện thoại là bắt buộc."}), 400
+
+    db = get_db()
+    cursor = db.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        # Kiểm tra email đã tồn tại với user khác chưa
+        cursor.execute("SELECT id FROM users WHERE email = %s AND id != %s", (email, user_id))
+        if cursor.fetchone():
+            return jsonify({"error": "Email này đã được sử dụng bởi tài khoản khác."}), 409
+
+        # Kiểm tra phone đã tồn tại với user khác chưa
+        cursor.execute("SELECT id FROM users WHERE phone = %s AND id != %s", (phone, user_id))
+        if cursor.fetchone():
+            return jsonify({"error": "Số điện thoại này đã được sử dụng bởi tài khoản khác."}), 409
+
+        # Cập nhật email và phone
+        cursor.execute(
+            "UPDATE users SET email = %s, phone = %s WHERE id = %s",
+            (email, phone, user_id)
+        )
+        db.commit()
+
+        return jsonify({"message": "Cập nhật hồ sơ thành công!"}), 200
+
+    except Exception as e:
+        db.rollback()
+        print(f"Lỗi khi cập nhật hồ sơ: {e}")
+        return jsonify({"error": "Đã xảy ra lỗi khi cập nhật hồ sơ."}), 500
+
+
+
+@auth_bp.route('/profile/<int:user_id>', methods=['GET'])
+def get_profile(user_id):
+    db = get_db()
+    cursor = db.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cursor.execute("SELECT id, email, phone FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+
+        if not user:
+            return jsonify({"error": "Người dùng không tồn tại."}), 404
+
+        return jsonify(user), 200
+
+    except Exception as e:
+        print(f"Lỗi khi lấy hồ sơ: {e}")
+        return jsonify({"error": "Không thể lấy dữ liệu hồ sơ."}), 500
+
+
+
+@auth_bp.route('/register/request-otp', methods=['POST'])
+def request_register_otp():
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    phone = data.get('phone')
+
+    if not username or not email or not password:
+        return jsonify({"error": "Thiếu thông tin"}), 400
+
+    db = get_db()
+    cursor = db.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s",
+                   (username, email))
+    if cursor.fetchone():
+        return jsonify({"error": "Username hoặc email đã tồn tại"}), 409
+
+    otp_code = generate_otp()
+    expire_at = datetime.datetime.now() + datetime.timedelta(minutes=10)
+
+    pending_otps[email] = {
+        "username": username,
+        "email": email,
+        "password": generate_password_hash(password),
+        "phone": phone,
+        "role": 0,
+        "status": "Active",
+        "registered_at": datetime.datetime.now(),
+        "otp": otp_code,
+        "expire_at": expire_at,
+        "type": "register"
+    }
+
+    subject = "Xác nhận đăng ký"
+    body = f"""
+    <p>Xin chào {username},</p>
+    <p>Mã OTP xác nhận đăng ký của bạn là:</p>
+    <h2>{otp_code}</h2>
+    <p>Mã có hiệu lực trong 10 phút.</p>
+    """
+
+    if send_email(email, subject, body):
+        return jsonify({"message": "OTP đã gửi đến email, vui lòng xác nhận"}), 200
+    else:
+        return jsonify({"error": "Không gửi được OTP"}), 500
+
+
+@auth_bp.route('/register/verify-otp', methods=['POST'])
+def verify_register_otp():
+    data = request.get_json()
+    email = data.get('email')
+    otp = data.get('otp')
+
+    otp_data = pending_otps.get(email)
+    if not otp_data or otp_data["type"] != "register":
+        return jsonify({"error": "Không tìm thấy yêu cầu đăng ký"}), 400
+
+    if datetime.datetime.now() > otp_data["expire_at"]:
+        pending_otps.pop(email, None)
+        return jsonify({"error": "OTP hết hạn"}), 400
+
+    if otp != otp_data["otp"]:
+        return jsonify({"error": "OTP không đúng"}), 400
+
+    db = get_db()
+    cursor = db.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("""
+        INSERT INTO users (username, email, password, phone, role, status, registered_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, username, email, role, status, registered_at
+    """, (otp_data["username"], otp_data["email"], otp_data["password"],
+          otp_data["phone"], otp_data["role"], otp_data["status"], otp_data["registered_at"]))
+    new_user = cursor.fetchone()
+    db.commit()
+
+    pending_otps.pop(email, None)
+
+    return jsonify({
+        "message": "Đăng ký thành công",
+        "user": new_user
+    }), 201

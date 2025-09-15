@@ -2,7 +2,7 @@
 // Giao diện người dùng cho trang tổng quan, sử dụng các class CSS tùy chỉnh.
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquareText, ReplyAll, Image, Users, Activity } from 'lucide-react';
+import { MessageSquareText, ReplyAll, Image, Users, Activity, ChevronLeft, ChevronRight } from 'lucide-react'; // Thêm ChevronLeft, ChevronRight
 
 // API_BASE_URL sẽ được xử lý bởi proxy đã cấu hình trong package.json
 const API_BASE_URL = '/api/dashboard';
@@ -241,38 +241,38 @@ const App = () => {
                                 ))}
                             </ul>
                             {totalActivitiesPages > 1 && (
-                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', gap: '10px' }}>
-                                    <button
-                                        onClick={() => handleActivitiesPageChange(activitiesCurrentPage - 1)}
-                                        disabled={activitiesCurrentPage === 1}
-                                        style={{ padding: '8px 12px', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer' }}
-                                    >
-                                        Trước
-                                    </button>
-                                    {[...Array(totalActivitiesPages)].map((_, index) => (
-                                        <button
-                                            key={index + 1}
-                                            onClick={() => handleActivitiesPageChange(index + 1)}
-                                            style={{
-                                                padding: '8px 12px',
-                                                border: '1px solid #ccc',
-                                                borderRadius: '5px',
-                                                cursor: 'pointer',
-                                                backgroundColor: activitiesCurrentPage === index + 1 ? '#007bff' : 'white',
-                                                color: activitiesCurrentPage === index + 1 ? 'white' : 'black',
-                                            }}
-                                        >
-                                            {index + 1}
-                                        </button>
-                                    ))}
-                                    <button
-                                        onClick={() => handleActivitiesPageChange(activitiesCurrentPage + 1)}
-                                        disabled={activitiesCurrentPage === totalActivitiesPages}
-                                        style={{ padding: '8px 12px', border: '1px solid #ccc', borderRadius: '5px', cursor: 'pointer' }}
-                                    >
-                                        Sau
-                                    </button>
-                                </div>
+                                <nav className="pagination-nav"> {/* Sử dụng class pagination-nav */}
+                                    <ul className="pagination-list"> {/* Sử dụng class pagination-list */}
+                                        <li className={`pagination-item ${activitiesCurrentPage === 1 ? 'disabled' : ''}`}> {/* Sử dụng class pagination-item */}
+                                            <button
+                                                onClick={() => handleActivitiesPageChange(activitiesCurrentPage - 1)}
+                                                disabled={activitiesCurrentPage === 1}
+                                                className="pagination-button" /* Sử dụng class pagination-button */
+                                            >
+                                                <ChevronLeft size={16} /> Trước
+                                            </button>
+                                        </li>
+                                        {[...Array(totalActivitiesPages)].map((_, index) => (
+                                            <li key={index + 1} className={`pagination-item ${activitiesCurrentPage === index + 1 ? 'active' : ''}`}>
+                                                <button
+                                                    onClick={() => handleActivitiesPageChange(index + 1)}
+                                                    className="pagination-button"
+                                                >
+                                                    {index + 1}
+                                                </button>
+                                            </li>
+                                        ))}
+                                        <li className={`pagination-item ${activitiesCurrentPage === totalActivitiesPages ? 'disabled' : ''}`}>
+                                            <button
+                                                onClick={() => handleActivitiesPageChange(activitiesCurrentPage + 1)}
+                                                disabled={activitiesCurrentPage === totalActivitiesPages}
+                                                className="pagination-button"
+                                            >
+                                                Sau <ChevronRight size={16} />
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </nav>
                             )}
                         </>
                     )}

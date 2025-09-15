@@ -137,9 +137,7 @@ body {
     font-weight: 500;
 }
 
-.sidebar-nav-button:not(.active) {
-    color: var(--text-medium);
-}
+
 
 .sidebar-nav-button:not(.active):hover {
     background-color: var(--bg-light-gray);
@@ -195,7 +193,7 @@ body {
 
 .sidebar-user-details a {
     color: var(--accent-blue);
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     /* text-xs */
     text-decoration: none;
 }
@@ -228,6 +226,12 @@ body {
     display: flex;
     align-items: center;
     gap: var(--spacing-4);
+}
+
+.profile-link {
+    color: #cacaca;
+    font-weight: bold;
+    font-size: 15px
 }
 
 .user-profile-avatar {
@@ -555,4 +559,346 @@ body {
 
 .logout-button-sidebar:hover {
     background-color: #c82333;
+}
+
+/* src/components/dashboard.css */
+
+/* Biến màu sắc (tùy chọn, để dễ quản lý) */
+:root {
+    --sidebar-bg-color: #bed9f3;
+    /* Màu xanh đậm cho nền sidebar */
+    --sidebar-text-color: #ecf0f1;
+    /* Màu chữ sáng */
+    --sidebar-hover-color: #34495e;
+    /* Màu xanh đậm hơn khi hover */
+    --sidebar-active-color: #3498db;
+    /* Màu xanh tươi sáng khi active */
+    --sidebar-active-text-color: #ffffff;
+    /* Màu chữ trắng khi active */
+    --logout-button-bg: #e74c3c;
+    /* Màu đỏ cho nút đăng xuất */
+    --logout-button-hover: #c0392b;
+    /* Màu đỏ đậm hơn khi hover */
+}
+
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+    font-family: 'Inter', sans-serif;
+    /* Đảm bảo font Inter được sử dụng */
+    overflow: hidden;
+    /* Ngăn cuộn ngoài container chính */
+}
+
+.sidebar {
+    width: 250px;
+    background: linear-gradient(to bottom right, #3e69de, #2d4da3);
+
+    color: var(--sidebar-text-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px 0;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 0 20px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
+}
+
+.sidebar-logo svg {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    color: var(--sidebar-active-color);
+    /* Logo màu xanh tươi */
+}
+
+.sidebar-app-name {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav li {
+    margin-bottom: 5px;
+}
+
+.sidebar-nav-button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 20px;
+    color: #ccc;
+    text-decoration: none;
+    background-color: transparent;
+    border: none;
+    text-align: left;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease, border-radius 0.3s ease;
+    border-radius: 8px;
+    /* Bo góc nhẹ */
+}
+
+.sidebar-nav-button svg {
+    margin-right: 10px;
+    width: 20px;
+    height: 20px;
+}
+
+.sidebar-nav-button:hover {
+    background-color: #fff;
+    /* Màu xanh đậm hơn khi hover */
+    border-radius: 8px;
+}
+
+/* Kiểu cho trang hiện tại (active) */
+.sidebar-nav-button.active {
+    background-color: var(--sidebar-active-color);
+    /* Màu xanh tươi sáng */
+    color: var(--sidebar-active-text-color);
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    /* Tạo hiệu ứng nổi bật */
+    border-radius: 8px;
+}
+
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 20px;
+    text-align: center;
+}
+
+.sidebar-user-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.sidebar-user-avatar svg {
+    width: 24px;
+    height: 24px;
+    color: #f39c12;
+    /* Màu vàng cam cho avatar */
+    margin-right: 8px;
+    padding-left: 8px;
+}
+
+.sidebar-user-details p {
+    margin: 0;
+    font-size: 0.95em;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.logout-button-sidebar {
+    background-color: var(--logout-button-bg);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    width: 80%;
+    /* Nút đăng xuất chiếm phần lớn chiều rộng */
+    margin: 0 auto;
+    display: block;
+    /* Để căn giữa */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+}
+
+.logout-button-sidebar:hover {
+    background-color: var(--logout-button-hover);
+    transform: translateY(-2px);
+}
+
+.main-content {
+    flex-grow: 1;
+    background-color: #cfd3d6;
+    /* Màu nền sáng cho nội dung chính */
+    padding: 20px;
+    overflow-y: auto;
+    /* Cho phép cuộn nếu nội dung quá dài */
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+.main-content-padding {
+    padding: 20px;
+    /* Thêm padding cho các trang con */
+}
+
+.content-placeholder {
+    /* Đảm bảo nội dung con fill đầy đủ không gian */
+    height: 100%;
+    display: flex;
+    /* Hoặc block, tùy thuộc vào layout con */
+    flex-direction: column;
+    /* Nếu là flex */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 80px;
+        /* Thu nhỏ sidebar trên màn hình nhỏ */
+        padding: 15px 0;
+    }
+
+    .sidebar-app-name {
+        display: none;
+        /* Ẩn tên ứng dụng */
+    }
+
+    .sidebar-nav-button {
+        justify-content: center;
+        /* Căn giữa icon */
+        padding: 10px 0;
+    }
+
+    .sidebar-nav-button span {
+        display: none;
+        /* Ẩn chữ */
+    }
+
+    .sidebar-nav-button svg {
+        margin-right: 0;
+    }
+
+    .sidebar-user-details p {
+        display: none;
+        /* Ẩn tên người dùng */
+    }
+
+    .logout-button-sidebar {
+        width: auto;
+        padding: 8px 10px;
+    }
+
+}
+
+/* Thêm vào file CSS của bạn (ví dụ: dashboard.css) */
+
+.pagination-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pagination-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 5px;
+    /* Khoảng cách giữa các nút */
+    flex-wrap: wrap;
+    /* Cho phép xuống dòng trên màn hình nhỏ */
+}
+
+.pagination-item {
+    display: inline-block;
+}
+
+.pagination-button {
+    background-color: #f0f2f5;
+    color: #333;
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.pagination-button:hover:not(:disabled) {
+    background-color: #e0e2e6;
+    border-color: #ccc;
+}
+
+.pagination-item.active .pagination-button {
+    background-color: #3498db;
+    /* Màu xanh active */
+    color: white;
+    border-color: #3498db;
+    font-weight: bold;
+}
+
+.pagination-item.disabled .pagination-button {
+    cursor: not-allowed;
+    opacity: 0.6;
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+/* Kiểu dáng cho bảng và hình ảnh */
+.cb-admin-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    /* Đảm bảo bo góc cho table */
+}
+
+.cb-admin-data-table th,
+.cb-admin-data-table td {
+    padding: 12px 15px;
+    border: 1px solid #e0e0e0;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.cb-admin-data-table th {
+    background-color: #f4f6f9;
+    font-weight: 600;
+    color: #333;
+    text-transform: uppercase;
+    font-size: 0.85em;
+}
+
+.cb-admin-data-table tbody tr:nth-child(even) {
+    background-color: #fbfbfc;
+}
+
+.cb-admin-data-table tbody tr:hover {
+    background-color: #f0f4f7;
+}
+
+.cb-admin-image-thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.truncate {
+    max-width: 250px;
+    /* Giới hạn chiều rộng cho cột prompt */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Hiển thị dấu ba chấm */
 }

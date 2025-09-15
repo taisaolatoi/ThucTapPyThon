@@ -42,6 +42,13 @@ const Sidebar = ({ isSidebarOpen, currentPath, navigate }) => {
             onClick={navigate}
           />
           <SidebarItem
+            icon="🎤"
+            text="Giọng nói thành Văn bản"
+            path="#voice-to-text"
+            currentPath={currentPath}
+            onClick={navigate}
+          />
+          <SidebarItem
             icon="👥"
             text="Quản lý Người dùng"
             path="#users"

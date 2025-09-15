@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import SummaryModal from './Sumary_Modal'; // Đã sửa lỗi chính tả
-import { InfinityIcon, Trash2Icon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, SaveIcon } from 'lucide-react';
+import SummaryModal from './Sumary_Modal.jsx'; // Đã sửa lỗi đường dẫn từ 'Sumary_Modal' sang 'Summary_Modal'
+import { InfinityIcon, Trash2Icon, ChevronLeft, ChevronRight, SearchIcon, SaveIcon } from 'lucide-react';
 
 const QAManagement = () => {
   const [conversations, setConversations] = useState([]);
@@ -15,7 +15,7 @@ const QAManagement = () => {
   const [deletingSessionId, setDeletingSessionId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7;
+  const itemsPerPage = 5;
   const [deleteStatus, setDeleteStatus] = useState(null);
 
   // Thêm state cho cấu hình AI
@@ -184,11 +184,11 @@ const QAManagement = () => {
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setCurrentPage(1);
+                setCurrentPage(1); // Reset về trang 1 khi tìm kiếm
               }}
               className="app-search-input"
             />
-            <SearchIcon className="app-search-icon" size={18} />
+            {/* <SearchIcon className="app-search-icon" size={18} /> */}
           </div>
         </div>
 
@@ -218,7 +218,7 @@ const QAManagement = () => {
                       <td className="app-table-cell">{conv.session_id}</td>
                       <td className="app-table-cell">{conv.user_name}</td>
                       <td className="app-table-cell truncate">{conv.summary}</td>
-                      <td className="app-table-cell">{conv.created_at}</td>
+                      <td className="app-table-cell">{new Date(conv.created_at).toLocaleString()}</td> {/* Định dạng thời gian */}
                       <td className="app-table-cell">
                         <div className="app-actions">
                           <button
@@ -248,31 +248,38 @@ const QAManagement = () => {
               </table>
 
               {totalPages > 1 && (
-                <div className="app-pagination">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="app-pagination-button"
-                  >
-                    <ChevronLeftIcon size={16} />
-                  </button>
-                  {[...Array(totalPages).keys()].map(page => (
-                    <button
-                      key={page + 1}
-                      onClick={() => handlePageChange(page + 1)}
-                      className={`app-pagination-button ${currentPage === page + 1 ? 'active' : ''}`}
-                    >
-                      {page + 1}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="app-pagination-button"
-                  >
-                    <ChevronRightIcon size={16} />
-                  </button>
-                </div>
+                <nav className="pagination-nav"> {/* Sử dụng class pagination-nav */}
+                  <ul className="pagination-list"> {/* Sử dụng class pagination-list */}
+                    <li className={`pagination-item ${currentPage === 1 ? 'disabled' : ''}`}> {/* Sử dụng class pagination-item */}
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="pagination-button" /* Sử dụng class pagination-button */
+                      >
+                        <ChevronLeft size={16} /> Previous
+                      </button>
+                    </li>
+                    {[...Array(totalPages)].map(page => (
+                      <li key={page + 1} className={`pagination-item ${currentPage === page + 1 ? 'active' : ''}`}>
+                        <button
+                          onClick={() => handlePageChange(page + 1)}
+                          className="pagination-button"
+                        >
+                          {page + 1}
+                        </button>
+                      </li>
+                    ))}
+                    <li className={`pagination-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="pagination-button"
+                      >
+                        Next <ChevronRight size={16} />
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
               )}
             </>
           )}
@@ -316,10 +323,10 @@ const QAManagement = () => {
               )}
             </button>
           </div>
-          <p className="ai-config-note">
+          {/* <p className="ai-config-note">
             Lưu ý: API Key được quản lý an toàn trên máy chủ và không thể thay đổi trực tiếp từ giao diện này.
             Việc thay đổi "Hướng dẫn hệ thống" sẽ được áp dụng cho các tương tác AI mới.
-          </p>
+          </p> */}
         </div>
       </div>
 

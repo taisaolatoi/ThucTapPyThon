@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { InfinityIcon, Trash2Icon, ChevronLeft, ChevronRight } from 'lucide-react'; // Thêm icon cho pagination
+import { InfinityIcon, Trash2Icon, ChevronLeft, ChevronRight } from 'lucide-react';
 
-// Component Modal xác nhận xóa tùy chỉnh
-const ConfirmDeleteModal = ({ show, onClose, onConfirm }) => {
+const ConfirmDeleteModal = ({ show, onClose, onConfirm, type }) => {
   if (!show) return null;
 
   return (
     <div className="app-modal-overlay">
       <div className="app-modal-content">
         <h3 className="app-modal-title">Xác nhận xóa</h3>
-        <p className="app-modal-text">Bạn có chắc chắn muốn xóa hình ảnh này? Hành động này không thể hoàn tác.</p>
+        <p className="app-modal-text">Bạn có chắc chắn muốn xóa {type} này? Hành động này không thể hoàn tác.</p>
         <div className="app-modal-actions">
           <button
             onClick={onClose}
@@ -30,12 +29,12 @@ const ConfirmDeleteModal = ({ show, onClose, onConfirm }) => {
   );
 };
 
-const TextToImageManagement = () => {
-  const [generatedImages, setGeneratedImages] = useState([]);
+const VoiceToTextManagement = () => {
+  const [translatedAudios, setTranslatedAudios] = useState([]);
 
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
-  const [deletingImageId, setDeletingImageId] = useState(null);
-  const [deletingImageUserId, setDeletingImageUserId] = useState(null);
+  const [deletingAudioId, setDeletingAudioId] = useState(null);
+  const [deletingAudioUserId, setDeletingAudioUserId] = useState(null);
 
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState(null);
@@ -43,73 +42,69 @@ const TextToImageManagement = () => {
 
   // === State cho Pagination ===
   const [currentPage, setCurrentPage] = useState(1);
-  const [imagesPerPage] = useState(5); // Hiển thị 8 ảnh mỗi trang
+  const [itemsPerPage] = useState(5);
 
   const API_BASE_URL = 'http://localhost:3001/api';
 
-  // Hàm lấy tất cả lịch sử hình ảnh đã tạo từ backend (dành cho admin)
-  const fetchAllGeneratedImages = async () => {
+  // Hàm lấy tất cả lịch sử bản dịch từ backend (dành cho admin)
+  const fetchAllTranslatedAudios = async () => {
     setIsHistoryLoading(true);
     setHistoryError(null);
     try {
-      const response = await axios.get(`${API_BASE_URL}/admin/image-history/all`);
-      const sortedImages = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      setGeneratedImages(sortedImages);
+      const response = await axios.get(`${API_BASE_URL}/admin/voice-to-text/all`);
+      const sortedAudios = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      setTranslatedAudios(sortedAudios);
     } catch (err) {
-      console.error('Lỗi khi lấy tất cả lịch sử hình ảnh:', err);
-      setHistoryError('Không thể tải lịch sử hình ảnh. Vui lòng thử lại.');
+      console.error('Lỗi khi lấy tất cả lịch sử bản dịch:', err);
+      setHistoryError('Không thể tải lịch sử bản dịch. Vui lòng thử lại.');
     } finally {
       setIsHistoryLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAllGeneratedImages();
+    fetchAllTranslatedAudios();
   }, []);
 
-  const handleDeleteImage = (id, userId) => {
-    setDeletingImageId(id);
-    setDeletingImageUserId(userId);
+  const handleDeleteAudio = (id, userId) => {
+    setDeletingAudioId(id);
+    setDeletingAudioUserId(userId);
     setShowDeleteConfirmModal(true);
   };
 
-  const confirmDeleteImage = async () => {
-    if (!deletingImageId) {
+  const confirmDeleteAudio = async () => {
+    if (!deletingAudioId) {
       setDeleteStatus('error');
       setShowDeleteConfirmModal(false);
       return;
     }
 
     try {
-      const response = await axios.delete(`${API_BASE_URL}/delete-image/${deletingImageId}`, {
-        params: { user_id: deletingImageUserId }
+      await axios.delete(`${API_BASE_URL}/delete-audio/${deletingAudioId}`, {
+        params: { user_id: deletingAudioUserId }
       });
       setDeleteStatus('success');
-      fetchAllGeneratedImages(); // Tải lại lịch sử sau khi xóa thành công
+      fetchAllTranslatedAudios(); // Tải lại lịch sử sau khi xóa thành công
     } catch (err) {
-      console.error('Lỗi khi gửi yêu cầu xóa hình ảnh:', err.response ? err.response.data : err.message);
+      console.error('Lỗi khi gửi yêu cầu xóa bản dịch:', err.response ? err.response.data : err.message);
       setDeleteStatus('error');
     } finally {
       setShowDeleteConfirmModal(false);
-      setDeletingImageId(null);
-      setDeletingImageUserId(null);
+      setDeletingAudioId(null);
+      setDeletingAudioUserId(null);
       setTimeout(() => setDeleteStatus(null), 3000);
     }
   };
 
   // === Logic cho Pagination ===
-  // Lấy ảnh hiện tại
-  const indexOfLastImage = currentPage * imagesPerPage;
-  const indexOfFirstImage = indexOfLastImage - imagesPerPage;
-  const currentImages = generatedImages.slice(indexOfFirstImage, indexOfLastImage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = translatedAudios.slice(indexOfFirstItem, indexOfLastItem);
 
-  // Tính tổng số trang
-  const totalPages = Math.ceil(generatedImages.length / imagesPerPage);
+  const totalPages = Math.ceil(translatedAudios.length / itemsPerPage);
 
-  // Thay đổi trang
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // Tạo mảng các số trang để hiển thị
   const pageNumbers = [];
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i);
@@ -117,17 +112,17 @@ const TextToImageManagement = () => {
 
   return (
     <div className="cb-admin-section-container">
-      <h3 className="cb-admin-section-title">Quản lý Hình ảnh AI</h3>
+      <h3 className="cb-admin-section-title">Quản lý Bản dịch Giọng nói</h3>
 
       {/* Thông báo trạng thái */}
       {deleteStatus === 'success' && (
         <div className="app-alert success" role="alert">
-          <span className="app-alert-text">Xóa hình ảnh thành công!</span>
+          <span className="app-alert-text">Xóa bản dịch thành công!</span>
         </div>
       )}
       {deleteStatus === 'error' && (
         <div className="app-alert error" role="alert">
-          <span className="app-alert-text">Không thể xóa hình ảnh. Vui lòng thử lại.</span>
+          <span className="app-alert-text">Không thể xóa bản dịch. Vui lòng thử lại.</span>
         </div>
       )}
       {historyError && (
@@ -136,48 +131,41 @@ const TextToImageManagement = () => {
         </div>
       )}
 
-      {/* Lịch sử Hình ảnh đã tạo */}
+      {/* Lịch sử Bản dịch đã tạo */}
       <div className="cb-admin-card" style={{ marginTop: '24px' }}>
-        <h4 className="cb-admin-card-title">Lịch sử Hình ảnh đã tạo</h4>
+        <h4 className="cb-admin-card-title">Lịch sử Bản dịch</h4>
         <div className="cb-admin-table-container">
           {isHistoryLoading ? (
             <div className="app-loading-state">
               <InfinityIcon className="app-loading-spinner" />
-              <p className="app-loading-text">Đang tải lịch sử hình ảnh...</p>
+              <p className="app-loading-text">Đang tải lịch sử bản dịch...</p>
             </div>
-          ) : generatedImages.length === 0 ? (
-            <p className="app-no-data">Không có hình ảnh nào được tạo.</p>
+          ) : translatedAudios.length === 0 ? (
+            <p className="app-no-data">Không có bản dịch nào được tạo.</p>
           ) : (
             <>
               <table className="cb-admin-data-table">
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th>Văn bản yêu cầu (Prompt)</th>
-                    <th>Hình ảnh</th>
+                    <th>Văn bản gốc</th>
+                    <th>Văn bản đã dịch</th>
                     <th>Người dùng</th>
                     <th>Thời gian</th>
                     <th>Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {currentImages.map((img) => (
-                    <tr key={img.id}>
-                      <td>{img.id}</td>
-                      <td className="truncate">{img.prompt}</td>
-                      <td>
-                        <img
-                          src={img.image_url}
-                          alt={img.prompt}
-                          className="cb-admin-image-thumbnail"
-                          onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/150x100/cccccc/000000?text=Error'; }}
-                        />
-                      </td>
-                      <td>{img.user_name}</td>
-                      <td>{new Date(img.created_at).toLocaleString()}</td> {/* Định dạng thời gian */}
+                  {currentItems.map((audio) => (
+                    <tr key={audio.id}>
+                      <td>{audio.id}</td>
+                      <td className="truncate">{audio.original_text}</td>
+                      <td className="truncate">{audio.translated_text}</td>
+                      <td>{audio.user_name}</td>
+                      <td>{new Date(audio.created_at).toLocaleString()}</td>
                       <td>
                         <button
-                          onClick={() => handleDeleteImage(img.id, img.user_id)}
+                          onClick={() => handleDeleteAudio(audio.id, audio.user_id)}
                           className="cb-admin-action-button delete"
                         >
                           <Trash2Icon size={16} /> Xóa
@@ -230,13 +218,14 @@ const TextToImageManagement = () => {
         show={showDeleteConfirmModal}
         onClose={() => {
           setShowDeleteConfirmModal(false);
-          setDeletingImageId(null);
-          setDeletingImageUserId(null);
+          setDeletingAudioId(null);
+          setDeletingAudioUserId(null);
         }}
-        onConfirm={confirmDeleteImage}
+        onConfirm={confirmDeleteAudio}
+        type="bản dịch"
       />
     </div>
   );
 };
 
-export default TextToImageManagement;
+export default VoiceToTextManagement;

@@ -100,24 +100,24 @@ def init_db():
 
         # Tạo bảng stt_history
         # Đã chỉnh sửa: thêm IF NOT EXISTS và FOREIGN KEY
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS stt_history (
-                id VARCHAR(255) PRIMARY KEY,
-                user_id INTEGER NOT NULL, -- Đã đổi từ VARCHAR sang INTEGER
-                transcribed_text TEXT NOT NULL,
-                word_timestamps JSONB,
-                audio_url VARCHAR(2048) NOT NULL,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-            );
-        ''')
+        # cursor.execute('''
+        #     CREATE TABLE IF NOT EXISTS stt_history (
+        #         id VARCHAR(255) PRIMARY KEY,
+        #         user_id INTEGER NOT NULL, -- Đã đổi từ VARCHAR sang INTEGER
+        #         transcribed_text TEXT NOT NULL,
+        #         word_timestamps JSONB,
+        #         audio_url VARCHAR(2048) NOT NULL,
+        #         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        #         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        #     );
+        # ''')
 
         # Tạo chỉ mục để cải thiện hiệu suất truy vấn trên bảng stt_history
         # Đã thêm các chỉ mục đã đề xuất
-        cursor.execute('''
-            CREATE INDEX IF NOT EXISTS idx_stt_history_user_id ON stt_history (user_id);
-            CREATE INDEX IF NOT EXISTS idx_stt_history_created_at ON stt_history (created_at);
-        ''')
+        # cursor.execute('''
+        #     CREATE INDEX IF NOT EXISTS idx_stt_history_user_id ON stt_history (user_id);
+        #     CREATE INDEX IF NOT EXISTS idx_stt_history_created_at ON stt_history (created_at);
+        # ''')
 
         conn.commit()
         print("Cơ sở dữ liệu PostgreSQL đã được khởi tạo/kiểm tra thành công.")

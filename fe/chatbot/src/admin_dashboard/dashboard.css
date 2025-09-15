@@ -2154,6 +2154,7 @@ body {
   font-weight: 500;
   color: #374151;
   margin-bottom: 0.5rem;
+  text-align: left;
 }
 
 .form-input,

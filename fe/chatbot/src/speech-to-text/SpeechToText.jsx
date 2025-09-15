@@ -307,7 +307,6 @@ const SpeechToText = ({ loggedInUserId }) => {
     return (
         <div className="stt-container">
             <h1 className="stt-title">Chuyển Giọng Nói thành Văn bản</h1>
-            <p className="stt-subtitle">Sử dụng AssemblyAI để phiên âm âm thanh một cách chính xác.</p>
 
             <div className="stt-action-box">
                 <div className="stt-section">

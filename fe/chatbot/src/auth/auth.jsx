@@ -12,6 +12,8 @@ const AuthPage = ({ onLoginSuccess }) => {
     const [username, setUsername] = useState(''); // Dùng cho trường username khi đăng ký
     const [phone, setPhone] = useState(''); // Dùng cho trường phone khi đăng ký
 
+
+    
     // Thêm các state để quản lý thông báo và trạng thái loading
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');

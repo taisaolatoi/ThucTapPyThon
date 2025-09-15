@@ -203,9 +203,10 @@ const ChatContent = ({username, loggedInUserId, loggedInUsername, onLogout, acti
                     <span className="button-text">{showChatSegments ? 'Ẩn Chat' : 'Hiện Chat'}</span>
                 </button>
                 <div className="user-info">
-                    Chào mừng, {loggedInUsername}!
+                    chào mừng {username}!
                 </div>
-                <button className="logout-btn" onClick={onLogout}>Đăng xuất</button>
+                
+                {/* <button className="logout-btn" onClick={onLogout}>Đăng xuất</button> */}
             </header>
 
             {/* Overlay cho sidebar khi ẩn/hiện trên mobile hoặc màn hình nhỏ */}

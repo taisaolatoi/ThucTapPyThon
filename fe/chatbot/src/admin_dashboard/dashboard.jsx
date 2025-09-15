@@ -6,7 +6,7 @@ import QAManagement from './QA/QAmanagement';
 import TextToImageManagement from './text_to_img/text_to_img_management';
 import UserManagement from './user/user_management';
 import SystemSettings from './system/sys_settings';
-
+import SpeechToText from './speech-to-text/speech-to-text-management';
 // Import CSS
 import './dashboard.css';
 // Component Route thủ công để chuyển đổi giữa các trang
@@ -57,6 +57,7 @@ const App = ({ loggedInUserId, username, onLogout }) => {
           <Route path="#text-to-image" element={<TextToImageManagement username={username} />} />
           <Route path="#users" element={<UserManagement username={username} loggedInUserId={loggedInUserId} />} />
           <Route path="#settings" element={<SystemSettings />} />
+          <Route path="#voice-to-text" element={<SpeechToText />} />
         </main>
       </div>
     </div>

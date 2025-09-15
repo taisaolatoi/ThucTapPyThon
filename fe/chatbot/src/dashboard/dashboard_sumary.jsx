@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import './dashboard_sumary.css'; // Import file CSS mới cho component này
 import { MessageSquareText, Image as ImageIcon, Activity } from 'lucide-react'; // Rename Image to ImageIcon to avoid conflict
-
+import { Link } from 'react-router-dom';
 const DashboardSummary = ({ loggedInUserId, username, onChatClick }) => {
     const [summaryStats, setSummaryStats] = useState({
         totalChats: 0,
@@ -121,9 +121,10 @@ const DashboardSummary = ({ loggedInUserId, username, onChatClick }) => {
                     ) : (
                         <p className="card-value">{summaryStats.totalImageGenerations.toLocaleString()}</p>
                     )}
-                    <button className="card-action-btn">
+
+                    <Link style={{ textDecoration: 'none' }} to="/dashboard/ai-form" className="card-action-btn">
                         Tạo ảnh mới
-                    </button>
+                    </Link>
                 </div>
             </div>
 

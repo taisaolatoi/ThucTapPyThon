@@ -169,9 +169,9 @@ const SystemSettings = () => {
               )}
             </button>
           </div>
-          <p className="cb-admin-settings-note">
+          {/* <p className="cb-admin-settings-note">
             Lưu ý: Việc thay đổi API Keys sẽ được lưu vào file `.env` của server. Bạn **cần khởi động lại server** để các thay đổi này có hiệu lực hoàn toàn.
-          </p>
+          </p> */}
         </form>
       </div>
     </div>

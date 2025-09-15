@@ -15,7 +15,7 @@ from psycopg2.extras import RealDictCursor
 
 from database import get_db_connection
 
-STABILITY_API_KEY = "sk-ywpUdhApv5lO5F5PmWS1XdJeLJXVvqZQvBJ209dMIY2u5aPk"
+STABILITY_API_KEY = "sk-r3eGdEHEHXXNqRNzXcCHyMTgETV0mYzraDblpXD5TfE4ls6B"
 SEGMENT_API_KEY = "SG_242151dd1a4024a5"
 
 image_bp = Blueprint('image_generation', __name__, url_prefix='/api')

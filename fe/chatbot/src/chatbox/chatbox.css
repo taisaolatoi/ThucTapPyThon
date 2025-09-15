@@ -314,7 +314,7 @@
 }
 
 .chat-header {
-    background-color: #8d2fff;
+    background-color: #89bff1;
     color: white;
     padding: 15px 20px;
     display: flex;
@@ -330,7 +330,7 @@
 
 .chat-header button {
     background-color: #fff;
-    color: #8d2fff;
+    color: #5154f8;
     border: none;
     padding: 8px 15px;
     border-radius: 5px;
@@ -376,7 +376,7 @@
 }
 
 .chat-segments-sidebar button {
-    background-color: #8d2fff;
+    background-color:#1a73e8;
     color: white;
     border: none;
     padding: 8px 12px;
@@ -388,7 +388,7 @@
 }
 
 .chat-segments-sidebar button:hover {
-    background-color: #45a049;
+    background-color: #0a1fda;
 }
 
 .chat-list {
@@ -416,7 +416,7 @@
 }
 
 .chat-list li.active {
-    background-color: #8d2fff;
+    background-color: #2196f3;
     font-weight: bold;
 }
 

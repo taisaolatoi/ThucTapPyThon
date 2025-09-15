@@ -147,9 +147,12 @@ def delete_user(user_id):
         # Nếu không có, bạn có thể bỏ qua các dòng này hoặc điều chỉnh.
         cursor.execute("DELETE FROM messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE user_id = %s);", (user_id,))
         cursor.execute("DELETE FROM chat_sessions WHERE user_id = %s;", (user_id,))
+        cursor.execute("DELETE FROM image_generations WHERE user_id = %s;", (user_id,))
+
         
         # Cuối cùng, xóa người dùng
         cursor.execute("DELETE FROM users WHERE id = %s;", (user_id,))
+
         db.commit()
 
         if cursor.rowcount == 0:
