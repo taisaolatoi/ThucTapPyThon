@@ -80,13 +80,13 @@ def get_db_connection():
         # In a production environment, you might want to log this error and exit the application
         raise # Re-raise the exception for the main application to handle
 
-def add_message(session_id, sender, text=None, image_data=None):
+def add_message(session_id, sender, text=None):
     """
     Adds a new message to the messages table.
     Can be a text message or a message with an image.
     """
     print(f"--- add_message called for session_id: {session_id}, sender: {sender} ---")
-    if text is None and image_data is None:
+    if text is None:
         print("Error in add_message: Message must have either text or image data.")
         return None
 
@@ -100,8 +100,8 @@ def add_message(session_id, sender, text=None, image_data=None):
         
         print(f"add_message: Executing INSERT for session {session_id}, sender {sender}...")
         cursor.execute(
-            "INSERT INTO messages (session_id, sender, text, image_data) VALUES (%s, %s, %s, %s) RETURNING id",
-            (session_id, sender, text, image_data)
+            "INSERT INTO messages (session_id, sender, text) VALUES (%s, %s, %s) RETURNING id",
+            (session_id, sender, text)
         )
         message_id = cursor.fetchone()['id'] # Get ID from RETURNING result by key
         print(f"add_message: Message inserted with ID: {message_id}")
@@ -255,25 +255,20 @@ def chat_endpoint():
 def get_session_history(session_id):
     db = get_db()
     cursor = db.cursor()
-    # Retrieve image_data for frontend display
-    # Use %s as placeholder for PostgreSQL
-    cursor.execute("SELECT sender, text, image_data, timestamp FROM messages WHERE session_id = %s ORDER BY timestamp ASC", (session_id,))
+    # Lấy tin nhắn trong session
+    cursor.execute(
+        "SELECT sender, text, timestamp FROM messages WHERE session_id = %s ORDER BY timestamp ASC",
+        (session_id,)
+    )
     messages = cursor.fetchall()
 
     history_data = []
     for msg in messages:
         msg_dict = dict(msg)
-        if msg_dict['image_data']:
-            # Convert BLOB (byte string) to Base64 string to send to frontend
-            # Note: if image_data is stored as TEXT (Base64 string) then base64.b64encode is not needed
-            # but you need to ensure it's a valid string.
-            # If you store it as BYTEA, then base64.b64encode is needed.
-            # According to the new SQL schema, you store TEXT, so just ensure it's a string.
-            msg_dict['image_url'] = f"data:image/png;base64,{msg_dict['image_data']}"
-        # Optionally delete raw image_data from JSON response to reduce size
-        # del msg_dict['image_data']
         history_data.append(msg_dict)
+
     return jsonify(history_data), 200
+
 
 @chat_bp.route('/sessions/<int:user_id>', methods=['GET'])
 def get_user_sessions(user_id):

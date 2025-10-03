@@ -49,11 +49,11 @@ def get_all_users():
             email, 
             role, 
             status, 
-            registered_at as registered
+            created_at as registered
         FROM 
             users 
         ORDER BY 
-            registered_at DESC;
+            created_at DESC;
         """
         cursor.execute(query)
         users = cursor.fetchall()

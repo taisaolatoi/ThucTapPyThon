@@ -74,7 +74,6 @@ def init_db():
                 session_id INTEGER NOT NULL,
                 sender TEXT NOT NULL,
                 text TEXT,
-                image_data TEXT,
                 timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (session_id) REFERENCES chat_sessions (id) ON DELETE CASCADE
             );

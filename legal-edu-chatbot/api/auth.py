@@ -70,8 +70,8 @@ def register():
     role = 0 
     # Mặc định status là 'Active'
     status = 'Active'
-    # Lấy thời gian hiện tại cho registered_at
-    registered_at = datetime.now()
+    # Lấy thời gian hiện tại cho created_at
+    created_at = datetime.now()
     if not username or not password:
         return jsonify({"error": "Tên người dùng và mật khẩu là bắt buộc."}), 400
     
@@ -104,10 +104,10 @@ def register():
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
         
         print("Inserting new user...")
-        # Thêm 'phone', 'role', 'status' và 'registered_at' vào câu lệnh INSERT
+        # Thêm 'phone', 'role', 'status' và 'created_at' vào câu lệnh INSERT
         cursor.execute(
-            "INSERT INTO users (username, email, password, phone, role, status, registered_at) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, role, status, registered_at",
-            (username, email, hashed_password, phone, role, status, registered_at)
+            "INSERT INTO users (username, email, password, phone, role, status, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, role, status, created_at",
+            (username, email, hashed_password, phone, role, status, created_at)
         )
         
         user_row = cursor.fetchone()
@@ -115,8 +115,8 @@ def register():
             user_id = user_row['id']
             user_role = user_row['role']
             user_status = user_row['status']
-            user_registered_at = user_row['registered_at'].strftime('%Y-%m-%d %H:%M:%S') # Định dạng lại để trả về
-            print(f"User inserted with ID: {user_id}, Role: {user_role}, Status: {user_status}, Registered At: {user_registered_at}")
+            user_created_at = user_row['created_at'].strftime('%Y-%m-%d %H:%M:%S') # Định dạng lại để trả về
+            print(f"User inserted with ID: {user_id}, Role: {user_role}, Status: {user_status}, Created At: {user_created_at}")
         else:
             print("Error: No user ID or role returned after insert.")
             raise Exception("Failed to retrieve user ID and role after registration.")
@@ -130,7 +130,7 @@ def register():
             "username": username, 
             "role": user_role,
             "status": user_status,
-            "registered_at": user_registered_at
+            "created_at": user_created_at
         }), 201
     except psycopg2.IntegrityError as e:
         if db:
