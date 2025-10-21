@@ -32,6 +32,11 @@ const ChatContent = ({ username, loggedInUserId, loggedInUsername, onLogout, act
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    const handleMainContentClick = () => {
+        if (showChatSegments) {
+            setShowChatSegments(false);
+        }
+    };
 
     const handleUpdateChatTitle = async (sessionId) => {
         if (!newSessionTitle.trim() || newSessionTitle.length < 3) {
@@ -347,7 +352,7 @@ const ChatContent = ({ username, loggedInUserId, loggedInUsername, onLogout, act
                 </ul>
             </aside>
 
-            <main className="chat-main-content">
+            <main className="chat-main-content" onClick={handleMainContentClick}>
                 <div className="chat-messages">
                     {error && <div className="error-message">Lỗi: {error}</div>} {/* Display general error */}
 
