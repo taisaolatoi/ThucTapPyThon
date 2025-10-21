@@ -1,1 +1,67 @@
-<img src="http://127.0.0.1:5500/legal-edu-chatbot/static/generated_images/77c753fc-0b4e-416c-8b13-657298d5a789.png" alt="">
+<!-- <img src="http://127.0.0.1:5500/legal-edu-chatbot/static/generated_images/77c753fc-0b4e-416c-8b13-657298d5a789.png" alt="">
+  -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="header">
+        <div class="nav">
+            <a href="https://www.youtube.com/">Home
+                <div class="subnav">
+                    <a href="#">Submenu 1</a>
+                    <a href="#">Submenu 2</a>
+                    <a href="#">Submenu 3</a>
+                </div>
+            </a>
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+        </div>
+    </div>
+    <div id="container"></div>
+    <div id="footer"></div>
+</body>
+<style>
+    #header{
+        height: 10vh;
+        background-color: lightblue;
+    }
+    nav{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+    }
+    #header a{
+        margin: 20px;
+        text-decoration: none;
+        color: black;
+        font-weight: bold;
+        line-height: 10vh;
+    }
+    #header a:hover{
+        color: white;
+    }
+    #header a:hover .subnav{
+        display: block;
+    }
+    .subnav{
+        display: none;
+        position: absolute;
+        background-color: lightgray;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    #container{
+        height: 80vh;
+        background-color: lightgreen;
+    }
+    #footer{
+        height: 10vh;
+        background-color: lightcoral;
+    }
+</style>
+</html>

@@ -59,7 +59,7 @@ const UserModal = ({ user, onClose, onSave }) => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="um-form-input"
+              className="um-form-input email-input"
               required
             />
           </div>

@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './SpeechToText.css';
+import io from 'socket.io-client';
+const SOCKET_URL = 'http://127.0.0.1:3002';
 
 // Component để hiển thị từng mục trong lịch sử
+
 const HistoryItem = ({ item, onClearItem }) => {
     const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
     const audioRef = useRef(null);
@@ -14,7 +17,7 @@ const HistoryItem = ({ item, onClearItem }) => {
         const currentTime = audioRef.current.currentTime * 1000;
 
         const currentWord = words.find(word => currentTime >= word.start && currentTime <= word.end);
-        
+
         if (currentWord) {
             const wordIndex = words.indexOf(currentWord);
             if (wordIndex !== highlightedWordIndex) {
@@ -24,10 +27,10 @@ const HistoryItem = ({ item, onClearItem }) => {
             setHighlightedWordIndex(words.length);
         }
     };
-    
+
     // Đặt lại highlight khi audio kết thúc
     const handleAudioEnded = () => {
-      setHighlightedWordIndex(-1);
+        setHighlightedWordIndex(-1);
     };
 
     return (
@@ -48,7 +51,7 @@ const HistoryItem = ({ item, onClearItem }) => {
                 )}
             </p>
             <div className="stt-history-controls">
-                <audio 
+                <audio
                     ref={audioRef}
                     controls
                     src={item.audioUrl}
@@ -81,7 +84,12 @@ const SpeechToText = ({ loggedInUserId }) => {
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const recordingIntervalRef = useRef(null);
-    const audioRef = useRef(null); 
+    const audioRef = useRef(null);
+
+
+    const [isRealtime, setIsRealtime] = useState(false);
+    const [realtimeText, setRealtimeText] = useState('');
+    const socketRef = useRef(null);
 
     const API_URL_TRANSCRIBE = 'http://127.0.0.1:3001/api/stt/transcribe';
     const API_URL_STATUS = 'http://127.0.0.1:3001/api/stt/status';
@@ -101,7 +109,7 @@ const SpeechToText = ({ loggedInUserId }) => {
         if (!loggedInUserId) return;
         localStorage.setItem(`stt-history-${loggedInUserId}`, JSON.stringify(history));
     };
-    
+
     const handleClearHistory = () => {
         if (!loggedInUserId) return;
         localStorage.removeItem(`stt-history-${loggedInUserId}`);
@@ -179,12 +187,74 @@ const SpeechToText = ({ loggedInUserId }) => {
         }
     };
 
+    const startRealtimeTranscription = async () => {
+        if (isRealtime) return;
+
+        try {
+            setIsRealtime(true);
+            setRealtimeText('');
+            setStatusMessage('Đang kết nối realtime...');
+
+            // Kết nối socket
+            socketRef.current = io(SOCKET_URL);
+
+            socketRef.current.on('connect', () => {
+                console.log('✅ Client đã kết nối Socket.IO');
+            });
+
+            socketRef.current.on('realtime_text', (data) => {
+                setRealtimeText(prev => prev + ' ' + data.text);
+            });
+
+            // Bắt đầu ghi âm realtime
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64Audio = reader.result.split(',')[1]; // Lấy phần base64
+                    socketRef.current.emit('send_audio', { audio: base64Audio });
+                };
+                reader.readAsDataURL(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                stream.getTracks().forEach(track => track.stop());
+                console.log('⏹️ Dừng ghi âm realtime');
+            };
+
+            mediaRecorder.start(250); // Mỗi 250ms gửi chunk
+            setStatusMessage('🎙️ Đang nghe và nhận dạng realtime...');
+
+        } catch (error) {
+            console.error('Realtime error:', error);
+            setStatusMessage('Lỗi khi khởi động realtime STT');
+            setIsRealtime(false);
+        }
+    };
+
+    const stopRealtimeTranscription = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop(); // Dừng ghi âm
+        }
+        if (socketRef.current) {
+            socketRef.current.disconnect(); // Ngắt kết nối socket
+        }
+        setIsRealtime(false);
+        setStatusMessage('Đã dừng realtime.');
+    };
+
+
+
     const stopRecording = () => {
         if (mediaRecorderRef.current && isRecording) {
             mediaRecorderRef.current.stop();
         }
     };
-    
+
     // Tạo dữ liệu từ giả lập với timestamp
     const createMockWords = (text) => {
         const wordsArray = text.split(' ').filter(w => w !== '');
@@ -240,11 +310,11 @@ const SpeechToText = ({ loggedInUserId }) => {
                 if (status === 'completed') {
                     transcript = pollResponse.data.text;
                     const mockWords = createMockWords(transcript);
-                    
+
                     setTranscriptText(transcript);
                     setTranscriptWords(mockWords);
                     setStatusMessage('Phiên âm hoàn tất!');
-                    
+
                     const audioUrl = URL.createObjectURL(audioFile);
 
                     const newHistoryItem = {
@@ -254,7 +324,7 @@ const SpeechToText = ({ loggedInUserId }) => {
                         audioUrl: audioUrl,
                         timestamp: Date.now(),
                     };
-                    
+
                     setTranscriptionHistory(prevHistory => {
                         const newHistory = [newHistoryItem, ...prevHistory].slice(0, 5);
                         saveHistory(newHistory);
@@ -264,7 +334,7 @@ const SpeechToText = ({ loggedInUserId }) => {
                     setStatusMessage(`Lỗi phiên âm: ${pollResponse.data.error_message || 'Không xác định'}`);
                     break;
                 }
-                
+
                 pollCount++;
                 if (status !== 'completed' && status !== 'error') {
                     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -282,9 +352,9 @@ const SpeechToText = ({ loggedInUserId }) => {
             setIsLoading(false);
         }
     };
-    
+
     const handleReadMoreClick = () => {
-      setIsTranscriptExpanded(!isTranscriptExpanded);
+        setIsTranscriptExpanded(!isTranscriptExpanded);
     };
 
     const formatTime = (seconds) => {
@@ -292,7 +362,7 @@ const SpeechToText = ({ loggedInUserId }) => {
         const secs = seconds % 60;
         return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     };
-    
+
     useEffect(() => {
         if (loggedInUserId) {
             loadHistory();
@@ -345,7 +415,7 @@ const SpeechToText = ({ loggedInUserId }) => {
                     />
                 </div>
             </div>
-            
+
             {(audioFile || isRecording) && (
                 <div className="stt-audio-preview">
                     {audioFile && (
@@ -353,17 +423,17 @@ const SpeechToText = ({ loggedInUserId }) => {
                             <p className="stt-filename">
                                 File đã chọn: <span className="stt-filename-value">{audioFile.name}</span>
                             </p>
-                            <audio 
-                                ref={audioRef} 
-                                controls 
-                                src={URL.createObjectURL(audioFile)} 
+                            <audio
+                                ref={audioRef}
+                                controls
+                                src={URL.createObjectURL(audioFile)}
                                 className="stt-audio-player"
                             />
                         </>
                     )}
                 </div>
             )}
-            
+
             <button
                 onClick={handleSubmit}
                 disabled={isLoading || !audioFile || isRecording}
@@ -375,7 +445,7 @@ const SpeechToText = ({ loggedInUserId }) => {
                     'Chuyển thành Văn bản'
                 )}
             </button>
-            
+
             {statusMessage && statusMessage !== 'Sẵn sàng' && (
                 <p className={`stt-status ${statusMessage.startsWith('Lỗi') ? 'stt-status-error' : 'stt-status-info'}`}>
                     {statusMessage}

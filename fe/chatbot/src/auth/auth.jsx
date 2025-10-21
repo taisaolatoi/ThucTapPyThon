@@ -169,7 +169,7 @@ const AuthPage = ({ onLoginSuccess }) => {
                                         type="password"
                                         id="password-login"
                                         name="password"
-                                        className="form-input"
+                                        className="form-input-pass"
                                         placeholder="Nhập mật khẩu của bạn"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
@@ -233,7 +233,7 @@ const AuthPage = ({ onLoginSuccess }) => {
                                         type="text"
                                         id="username-register"
                                         name="username"
-                                        className="form-input"
+                                        className="form-input register-username-input"
                                         placeholder="Nhập tên người dùng của bạn"
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
@@ -243,14 +243,14 @@ const AuthPage = ({ onLoginSuccess }) => {
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="email-register" className="form-label">
-                                        Email (Không bắt buộc)
+                                        Email 
                                     </label>
                                     <input
                                         type="email"
                                         id="email-register"
                                         name="email"
                                         className="form-input"
-                                        placeholder="example@email.com (Không bắt buộc)"
+                                        placeholder="example@email.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         disabled={isLoading}

@@ -1,24 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import './history.css'; // Import CSS styles for the component
-import { FaTrash } from 'react-icons/fa'; // Import icon thùng rác từ react-icons
+import { FaTrash, FaDownload } from 'react-icons/fa'; // Import icon thùng rác và tải xuống
 
 const ImageHistory = ({ loggedInUserId, activeSessionId }) => {
     const [historyImages, setHistoryImages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isVisible, setIsVisible] = useState(true); // State to manage history section visibility
+    const [isVisible, setIsVisible] = useState(true); 
 
-    // State for custom confirmation modal
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [imageToDeleteId, setImageToDeleteId] = useState(null);
-    const [deleteError, setDeleteError] = useState(null); // Specific error for delete operation
+    const [deleteError, setDeleteError] = useState(null); 
 
-    // Function to toggle history section visibility
     const toggleVisibility = () => {
         setIsVisible(!isVisible);
     };
 
-    // Function to fetch image history
+    // Function to fetch image history (Giữ nguyên)
     useEffect(() => {
         const fetchImageHistory = async () => {
             if (!loggedInUserId) {
@@ -28,7 +26,7 @@ const ImageHistory = ({ loggedInUserId, activeSessionId }) => {
             }
 
             setLoading(true);
-            setError(null); // Clear main error when fetching history
+            setError(null); 
 
             try {
                 let url = `http://localhost:3001/api/image-history?user_id=${loggedInUserId}`;
@@ -59,19 +57,19 @@ const ImageHistory = ({ loggedInUserId, activeSessionId }) => {
         };
 
         fetchImageHistory();
-    }, [loggedInUserId, activeSessionId]); // Re-fetch when user_id or activeSessionId changes
+    }, [loggedInUserId, activeSessionId]); 
 
-    // Function to initiate delete confirmation
+    // Hàm Confirm/Execute/Cancel Delete (Giữ nguyên)
     const confirmDelete = (imageId) => {
         setImageToDeleteId(imageId);
         setShowConfirmModal(true);
-        setDeleteError(null); // Clear previous delete error
+        setDeleteError(null); 
     };
 
-    // Function to handle actual deletion after confirmation
     const executeDelete = async () => {
-        setShowConfirmModal(false); // Hide the modal
-        if (!imageToDeleteId) return; // Should not happen if modal is shown correctly
+        // ... (Logic xóa giữ nguyên) ...
+        setShowConfirmModal(false); 
+        if (!imageToDeleteId) return; 
 
         if (!loggedInUserId) {
             setDeleteError("User ID is missing. Cannot delete image.");
@@ -93,7 +91,7 @@ const ImageHistory = ({ loggedInUserId, activeSessionId }) => {
 
             setHistoryImages(prevImages => prevImages.filter(image => image.id !== imageToDeleteId));
             console.log(`Image with ID ${imageToDeleteId} deleted successfully.`);
-            setImageToDeleteId(null); // Reset ID after successful deletion
+            setImageToDeleteId(null); 
 
         } catch (err) {
             console.error("Error deleting image:", err);
@@ -101,12 +99,53 @@ const ImageHistory = ({ loggedInUserId, activeSessionId }) => {
         }
     };
 
-    // Function to cancel deletion
     const cancelDelete = () => {
         setShowConfirmModal(false);
         setImageToDeleteId(null);
         setDeleteError(null);
     };
+
+    // CHỨC NĂNG TẢI XUỐNG CẬP NHẬT
+const handleDownload = async (imageUrl, prompt) => {
+    // 1. Xây dựng URL đầy đủ của ảnh
+    const fullImageUrl = `http://127.0.0.1:5500/legal-edu-chatbot${imageUrl}`;
+
+    try {
+        // 2. Fetch (lấy) dữ liệu ảnh dưới dạng Blob (dữ liệu nhị phân)
+        const response = await fetch(fullImageUrl);
+        if (!response.ok) {
+            throw new Error('Không thể tải file ảnh từ đường dẫn.');
+        }
+
+        const imageBlob = await response.blob();
+        
+        // 3. Tạo URL đối tượng (Object URL) từ Blob
+        const objectUrl = window.URL.createObjectURL(imageBlob);
+
+        // 4. Tạo thẻ <a> ảo để kích hoạt hành vi download
+        const link = document.createElement('a');
+        link.href = objectUrl;
+
+        // 5. Đặt tên file tải xuống
+        const date = new Date().toISOString().slice(0, 10);
+        // Làm sạch prompt để đặt tên file
+        const cleanPrompt = prompt.replace(/[^a-z0-9]/gi, '_').substring(0, 30); 
+        link.download = `AI_Image_${cleanPrompt}_${date}.png`; 
+        
+        // 6. Kích hoạt download
+        document.body.appendChild(link);
+        link.click();
+        
+        // 7. Dọn dẹp: xóa thẻ <a> ảo và giải phóng Object URL
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(objectUrl);
+        
+    } catch (error) {
+        console.error("Lỗi tải xuống ảnh:", error);
+        // Thông báo cho người dùng biết lỗi nếu cần
+        alert(`Lỗi tải xuống: ${error.message}`);
+    }
+};
 
     return (
         <div className="image-history-container">
@@ -128,10 +167,24 @@ const ImageHistory = ({ loggedInUserId, activeSessionId }) => {
                         <div className="image-grid">
                             {historyImages.map((image) => (
                                 <div key={image.id} className="image-card">
-                                    <button className="delete-button" onClick={() => confirmDelete(image.id)} title="Xóa ảnh này">
-                                        <FaTrash />
-                                    </button>
-
+                                    <div className="image-actions">
+                                        <button className="delete-button" onClick={() => confirmDelete(image.id)} title="Xóa ảnh này">
+                                            <FaTrash />
+                                        </button>
+                                        
+                                        {/* Nút Tải xuống với Class mới */}
+                                        {image.status === 'success' && (
+                                            <button 
+                                                className="download-icon-button" // Class mới
+                                                onClick={() => handleDownload(image.image_url, image.prompt)} 
+                                                title="Tải xuống ảnh"
+                                            >
+                                                <FaDownload />
+                                            </button>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Phần hiển thị ảnh giữ nguyên */}
                                     {image.status === 'success' ? (
                                         <img src={`http://127.0.0.1:5500/legal-edu-chatbot${image.image_url}`} alt={`Generated: ${image.prompt}`} className="generated-image" />
                                     ) : (
@@ -142,8 +195,8 @@ const ImageHistory = ({ loggedInUserId, activeSessionId }) => {
                                     )}
                                     <div className="image-info">
                                         <p className="image-prompt"><strong>Prompt:</strong> {image.prompt}</p>
-                                        {/* <p className="image-style"><strong>Phong cách:</strong> {image.style}</p>
-                                        <p className="image-engine"><strong>Mô hình:</strong> {image.engine_id}</p> */}
+                                        <p className="image-style"><strong>Phong cách:</strong> {image.style}</p>
+                                        <p className="image-engine"><strong>Mô hình:</strong> {image.engine_id}</p>
                                         <p className="image-date"><strong>Thời gian:</strong> {new Date(image.created_at).toLocaleString()}</p>
                                         <p className={`image-status status-${image.status}`}>
                                             <strong>Trạng thái:</strong> {image.status === 'success' ? 'Thành công' : image.status === 'failed' ? 'Thất bại' : 'Đang chờ'}
@@ -156,7 +209,7 @@ const ImageHistory = ({ loggedInUserId, activeSessionId }) => {
                 </div>
             )}
 
-            {/* Custom Confirmation Modal */}
+            {/* Modal Xác nhận giữ nguyên */}
             {showConfirmModal && (
                 <div className="confirm-modal-overlay">
                     <div className="confirm-modal">
@@ -175,6 +228,3 @@ const ImageHistory = ({ loggedInUserId, activeSessionId }) => {
 };
 
 export default ImageHistory;
-
-
-

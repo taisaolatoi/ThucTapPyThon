@@ -92,6 +92,14 @@ def register():
             print("Username already exists.")
             return jsonify({"error": "Tên người dùng này đã tồn tại."}), 409
 
+
+
+        print(f"Checking if phone '{phone}' exists...")
+        cursor.execute("SELECT id FROM users WHERE phone = %s", (phone,))
+        if cursor.fetchone():
+            print("Phone number already exists.")
+            return jsonify({"error": "Số điện thoại này đã tồn tại."}), 409
+
         # Nếu email được cung cấp, kiểm tra email đã tồn tại chưa
         if email:
             print(f"Checking if email '{email}' exists...")
@@ -168,20 +176,41 @@ def login():
     cursor = db.cursor(cursor_factory=RealDictCursor)
 
     try:
-        # Thử tìm theo username
-        cursor.execute("SELECT id, username, email, password, role FROM users WHERE username = %s", (username_or_email,))
+        # Truy vấn CSDL, LẤY THÊM cột 'status'
+        sql_query = "SELECT id, username, email, password, role, status FROM users WHERE username = %s OR email = %s"
+        cursor.execute(sql_query, (username_or_email, username_or_email))
         user = cursor.fetchone()
 
-        # Nếu không tìm thấy theo username, thử tìm theo email
-        if not user:
-            cursor.execute("SELECT id, username, email, password, role FROM users WHERE email = %s", (username_or_email,))
-            user = cursor.fetchone()
-
-        if user and check_password_hash(user['password'], password):
-            # Trả về role trong phản hồi đăng nhập
-            return jsonify({"message": "Đăng nhập thành công!", "user_id": user['id'], "username": user['username'], "role": user['role']}), 200
+        if user:
+            # 1. Kiểm tra Mật khẩu
+            if check_password_hash(user['password'], password):
+                
+                # 2. KIỂM TRA TRẠNG THÁI (STATUS)
+                # Giả định 'Inactive' là trạng thái bị khóa.
+                if user['status'] == 'Inactive':
+                    print(f"Lỗi đăng nhập: Tài khoản {user['username']} đã bị khóa (Inactive).")
+                    return jsonify({"error": "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ bộ phận hỗ trợ."}), 403
+                
+                # Chỉ cho phép đăng nhập nếu status là 'Active' (hoặc các trạng thái không bị khóa khác)
+                elif user['status'] == 'Active':
+                    # Trả về role trong phản hồi đăng nhập
+                    return jsonify({
+                        "message": "Đăng nhập thành công!", 
+                        "user_id": user['id'], 
+                        "username": user['username'], 
+                        "role": user['role']
+                    }), 200
+                else:
+                    # Xử lý các trạng thái khác nếu có
+                    print(f"Lỗi đăng nhập: Tài khoản {user['username']} có trạng thái không xác định: {user['status']}")
+                    return jsonify({"error": "Lỗi trạng thái tài khoản. Vui lòng liên hệ bộ phận hỗ trợ."}), 403
+            else:
+                # Mật khẩu không chính xác
+                return jsonify({"error": "Tên người dùng/email hoặc mật khẩu không chính xác."}), 401
         else:
+            # Không tìm thấy người dùng theo username hoặc email
             return jsonify({"error": "Tên người dùng/email hoặc mật khẩu không chính xác."}), 401
+            
     except psycopg2.Error as e:
         print(f"Lỗi PostgreSQL khi đăng nhập: {e}")
         return jsonify({"error": "Đã xảy ra lỗi hệ thống khi đăng nhập. Vui lòng thử lại sau."}), 500

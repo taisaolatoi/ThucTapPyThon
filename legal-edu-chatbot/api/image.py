@@ -7,7 +7,9 @@ import uuid
 
 import requests
 from PIL import Image, ImageDraw, ImageFont
-from googletrans import Translator
+# from googletrans import Translator 
+
+from deep_translator import GoogleTranslator  
 from flask import Blueprint, request, jsonify, g, current_app
 
 import psycopg2
@@ -31,13 +33,19 @@ def teardown_db(exception):
     if db is not None:
         db.close()
 
-def translate_prompt(viet_prompt):
-    translator = Translator()
+# Đã sửa lỗi chính tả ở phần chú thích.
+def translate_prompt(viet_prompt): 
     try:
-        eng_prompt = translator.translate(viet_prompt, dest='en').text
-        return eng_prompt
+        eng_prompt = GoogleTranslator(source='vi', target='en').translate(viet_prompt)
+        if eng_prompt:
+             return eng_prompt
+        else:
+             print("Dịch thất bại, trả về prompt gốc.")
+             return viet_prompt
+             
     except Exception as e:
-        print(f"Error translating prompt: {e}")
+        # Lỗi khi dịch prompt: {e} sẽ là lỗi kết nối hoặc thư viện, không còn lỗi coroutine
+        print(f"Lỗi khi dịch prompt (deep-translator): {e}")
         return viet_prompt
 
 def generate_image_from_sdxl(prompt, style=None, engine_id="stable-diffusion-xl-1024-v1-0", cfg_scale=7, steps=30, seed=None, negative_prompt=None):
@@ -122,8 +130,8 @@ def get_available_engines():
         return engines
     except requests.exceptions.RequestException:
         return [
-            {"id": "stable-diffusion-xl-1024-v1-0", "name": "Stable Diffusion XL v1.0"},
-            {"id": "stable-diffusion-v1-6", "name": "Stable Diffusion v1.6"}
+            {"id": "stable-diffusion-xl-1024-v1-0", "name": "Stability (Tốc độ trung bình, chất lượng rất cao)"},
+            {"id": "stable-diffusion-v1-6", "name": "Stability (Tốc độ nhanh, chi tiết cao)"}
         ]
 
 # --- Blueprint Routes ---
@@ -132,8 +140,7 @@ def get_available_engines():
 def generate_image():
     data = request.get_json()
     user_id = data.get('user_id')
-    # Đảm bảo dòng này không bị comment hoặc bị xóa
-    session_id = data.get('session_id') # Lấy session_id từ request, có thể là None
+    session_id = data.get('session_id')
 
     viet_prompt = data.get('prompt')
     style = data.get('style', 'design')
@@ -149,10 +156,7 @@ def generate_image():
     image_generation_id = None
 
     try:
-        # Logic tạo chat_sessions đã bị loại bỏ như bạn yêu cầu
-        # Các bản ghi tạo ảnh giờ đây độc lập với chat sessions
-
-        # INSERT statement đã được sửa để không còn chèn session_id vào image_generations
+        # INSERT statement
         cursor.execute(
             "INSERT INTO image_generations (user_id, prompt, style, engine_id, status) VALUES (%s, %s, %s, %s, %s) RETURNING id",
             (user_id, viet_prompt, style, engine_id, 'pending')
@@ -161,6 +165,7 @@ def generate_image():
         db.commit()
         print(f"Đã tạo bản ghi image_generations ban đầu với ID: {image_generation_id}")
 
+        # ĐÃ SỬA: Gọi hàm dịch đồng bộ
         eng_prompt = translate_prompt(viet_prompt)
 
         image = None
@@ -192,13 +197,12 @@ def generate_image():
         db.commit()
         print(f"Đã cập nhật bản ghi image_generations ID {image_generation_id} với URL ảnh và trạng thái thành công.")
 
-        # session_id vẫn được trả về, ngay cả khi nó là None
         return jsonify({
             "image_url": image_url,
             "prompt": viet_prompt,
             "style": style,
             "engine_id": engine_id,
-            "session_id": session_id # Đảm bảo biến này đã được định nghĩa
+            "session_id": session_id 
         })
     except Exception as e:
         error_message = str(e)
@@ -229,7 +233,7 @@ def generate_image():
 @image_bp.route('/available-models', methods=['GET'])
 def get_models():
     available_models = get_available_engines()
-    available_models.append({"id": "flux-schnell", "name": "Flux.1 Schnell (Segmind)"})
+    available_models.append({"id": "flux-schnell", "name": "Segmind (Tốc độ nhanh, kho dữ liệu lớn)"})
     return jsonify(available_models)
 
 @image_bp.route('/image-history', methods=['GET'])

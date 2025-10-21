@@ -1,7 +1,15 @@
 import os
 import requests
+import json
 import time
+import threading
 from flask import Blueprint, request, jsonify
+from flask_socketio import SocketIO, emit
+import websocket
+import base64
+import pyaudio
+
+socketio = SocketIO(cors_allowed_origins="*")
 
 # Tạo Blueprint mới cho chức năng Speech-to-Text
 stt_bp = Blueprint('stt', __name__, url_prefix='/api/stt')
@@ -9,6 +17,8 @@ stt_bp = Blueprint('stt', __name__, url_prefix='/api/stt')
 # Cấu hình AssemblyAI API
 ASSEMBLYAI_API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
 ASSEMBLYAI_BASE_URL = "https://api.assemblyai.com/v2"
+ASSEMBLYAI_REALTIME_URL = "wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000"
+
 
 if not ASSEMBLYAI_API_KEY:
     print("Error: ASSEMBLYAI_API_KEY is missing in environment variables when initializing STT blueprint.")
@@ -179,3 +189,53 @@ def get_transcription_status(transcript_id):
     except Exception as e:
         print(f"Unexpected error in get_transcription_status: {e}")
         return jsonify({"error": f"Internal server error: {e}"}), 500
+
+@stt_bp.route('/realtime/start', methods=['GET'])
+def start_realtime_stt():
+    """
+    Khi client (frontend) gọi API này -> server Flask sẽ kết nối tới AssemblyAI realtime API
+    và bắt đầu gửi luồng âm thanh từ microphone để nhận văn bản realtime.
+    """
+    if not ASSEMBLYAI_API_KEY:
+        return jsonify({"error": "Missing AssemblyAI API key"}), 500
+
+    def run_streaming():
+        try:
+            # Kết nối websocket với AssemblyAI
+            ws = websocket.WebSocket()
+            ws.connect(ASSEMBLYAI_REALTIME_URL, header=[f"Authorization: {ASSEMBLYAI_API_KEY}"])
+            print("✅ Connected to AssemblyAI Realtime API")
+
+            # Cấu hình microphone
+            p = pyaudio.PyAudio()
+            stream = p.open(format=pyaudio.paInt16,
+                            channels=1,
+                            rate=16000,
+                            input=True,
+                            frames_per_buffer=3200)
+
+            def send_audio():
+                while True:
+                    data = stream.read(3200, exception_on_overflow=False)
+                    encoded = base64.b64encode(data).decode("utf-8")
+                    ws.send(json.dumps({"audio_data": encoded}))
+                    time.sleep(0.01)
+
+            # Chạy luồng gửi audio
+            threading.Thread(target=send_audio, daemon=True).start()
+
+            # Nhận dữ liệu realtime từ AssemblyAI
+            while True:
+                result = ws.recv()
+                if result:
+                    msg = json.loads(result)
+                    if "text" in msg and msg["text"].strip():
+                        print(f"🗣 {msg['text']}")
+                        socketio.emit('realtime_text', {"text": msg['text']})
+        except Exception as e:
+            print(f"❌ Error in realtime streaming: {e}")
+
+    # Chạy streaming trong thread riêng
+    threading.Thread(target=run_streaming, daemon=True).start()
+
+    return jsonify({"status": "realtime transcription started"}), 200

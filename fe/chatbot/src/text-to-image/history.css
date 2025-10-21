@@ -79,7 +79,7 @@
 /* Style for the delete button */
 .delete-button {
   position: absolute;
-  top: 10px;
+  top: px;
   right: 10px;
   background-color: rgba(231, 76, 60, 0.85); /* Red with some transparency */
   color: white;
@@ -384,4 +384,138 @@
   .modal-button {
     width: 100%;
   }
+}
+
+
+/* Thêm hoặc Cập nhật phần này trong history.css */
+
+/* Định kiểu chung cho cả hai nút hành động */
+.delete-button,
+.download-icon-button { /* Dùng class mới */
+    background: rgba(255, 255, 255, 0.9); 
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+    padding: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Thêm bóng mờ nhẹ */
+}
+
+/* -------------------- */
+/* CSS riêng cho nút Tải Xuống */
+.download-icon-button {
+    color: #28a745; /* Màu xanh lá cây */
+    border-color: #28a745;
+}
+
+.download-icon-button:hover {
+    background-color: #28a745;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4); /* Bóng xanh lá khi hover */
+}
+
+/* -------------------- */
+/* CSS riêng cho nút Xóa */
+.delete-button {
+    color: #dc3545; /* Màu đỏ */
+    border-color: #dc3545;
+}
+
+.delete-button:hover {
+    background-color: #dc3545;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4); /* Bóng đỏ khi hover */
+}
+
+/* -------------------- */
+/* Vị trí chung của các nút */
+.image-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+
+.delete-button,
+.download-icon-button {
+    /* Thiết lập ban đầu */
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    
+    /* Thiết lập ẩn mặc định */
+    opacity: 0; /* Ẩn đi mặc định */
+    transform: scale(0.8); /* Bắt đầu nhỏ hơn */
+    transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.2s ease;
+    z-index: 10;
+}
+
+/* Vị trí chung của các nút */
+.image-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    /* Đảo ngược thứ tự để nút Tải xuống nằm bên trái nút Xóa */
+    flex-direction: row-reverse; 
+    gap: 8px;
+    z-index: 10;
+}
+
+/* HIỂN THỊ CẢ HAI NÚT KHI HOVER VÀO THẺ ẢNH */
+.image-card:hover .delete-button,
+.image-card:hover .download-icon-button {
+    opacity: 1; /* Hiển thị */
+    transform: scale(1); /* Phóng to về kích thước gốc */
+}
+
+/* -------------------- */
+/* CSS riêng cho nút Tải Xuống */
+.download-icon-button {
+    color: #28a745;
+    border-color: #28a745;
+    /* Dịch chuyển nhẹ về bên trái để tránh chồng chéo */
+    margin-right: 40px; /* Tạo khoảng trống để không bị chồng lên nút Xóa */
+}
+
+.download-icon-button:hover {
+    background-color: #28a745;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+}
+
+/* -------------------- */
+/* CSS riêng cho nút Xóa */
+.delete-button {
+    color: #dc3545;
+    border-color: #dc3545;
+    /* Đặt vị trí riêng cho nút Xóa, sát bên phải nhất */
+    position: absolute;
+    right: 0; 
+}
+
+.delete-button:hover {
+    background-color: #dc3545;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
 }

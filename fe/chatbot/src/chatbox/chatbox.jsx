@@ -11,7 +11,7 @@ import rehypeRaw from 'rehype-raw'; // Plugin cho phép HTML raw (cẩn thận v
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
-const ChatContent = ({username, loggedInUserId, loggedInUsername, onLogout, activeSessionId, setActiveSessionId }) => {
+const ChatContent = ({ username, loggedInUserId, loggedInUsername, onLogout, activeSessionId, setActiveSessionId }) => {
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState('');
     const [chatSegments, setChatSegments] = useState([]);
@@ -25,11 +25,53 @@ const ChatContent = ({username, loggedInUserId, loggedInUsername, onLogout, acti
     const [sessionToDeleteId, setSessionToDeleteId] = useState(null);
     const [chatDeleteError, setChatDeleteError] = useState(null); // Specific error for delete operation
 
-    // Removed: Get notification functions from context
-    // const { showSuccessNotification, showErrorNotification } = useNotification();
+    const [editingSessionId, setEditingSessionId] = useState(null);
+    const [newSessionTitle, setNewSessionTitle] = useState('');
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+
+    const handleUpdateChatTitle = async (sessionId) => {
+        if (!newSessionTitle.trim() || newSessionTitle.length < 3) {
+            setError('Tên chat phải có ít nhất 3 ký tự.');
+            return;
+        }
+
+        setError(null);
+        setIsLoading(true);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/chat/session/${sessionId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    new_title: newSessionTitle,
+                    user_id: loggedInUserId, // Thêm user_id để bảo mật
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Không thể cập nhật tên chat.');
+            }
+
+            // Tải lại danh sách chatSegments sau khi cập nhật thành công
+            await fetchChatSegments(loggedInUserId);
+
+            // Reset trạng thái chỉnh sửa
+            setEditingSessionId(null);
+            setNewSessionTitle('');
+
+        } catch (error) {
+            console.error('Lỗi khi cập nhật tên chat:', error);
+            setError(`Lỗi khi cập nhật: ${error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // useEffect(() => {
@@ -205,7 +247,7 @@ const ChatContent = ({username, loggedInUserId, loggedInUsername, onLogout, acti
                 <div className="user-info">
                     chào mừng {username}!
                 </div>
-                
+
                 {/* <button className="logout-btn" onClick={onLogout}>Đăng xuất</button> */}
             </header>
 
@@ -229,18 +271,76 @@ const ChatContent = ({username, loggedInUserId, loggedInUsername, onLogout, acti
                     ) : (
                         chatSegments.map(segment => (
                             <li key={segment.id} className={segment.id === activeSessionId ? 'active' : ''}>
-                                <span onClick={() => {
-                                    setActiveSessionId(segment.id);
-                                    setShowChatSegments(false);
-                                }}>
-                                    {segment.title} ({segment.message_count})
-                                </span>
-                                <button className="delete-chat-btn" onClick={(e) => {
-                                    e.stopPropagation();
-                                    confirmDeleteChatSession(segment.id); // Call custom confirm
-                                }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                                </button>
+                                {/* THAY THẾ TOÀN BỘ NỘI DUNG LI NÀY: */}
+                                {editingSessionId === segment.id ? (
+                                    <div className="edit-title-group">
+                                        <input
+                                            type="text"
+                                            value={newSessionTitle}
+                                            onChange={(e) => setNewSessionTitle(e.target.value)}
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleUpdateChatTitle(segment.id);
+                                                }
+                                            }}
+                                            className="edit-title-input"
+                                            disabled={isLoading}
+                                        />
+                                        <button
+                                            className="save-chat-btn"
+                                            onClick={() => handleUpdateChatTitle(segment.id)}
+                                            disabled={isLoading}
+                                        >
+                                            {/* Biểu tượng lưu (tick) */}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-check"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                        </button>
+                                        <button
+                                            className="cancel-edit-btn"
+                                            onClick={() => setEditingSessionId(null)}
+                                            disabled={isLoading}
+                                        >
+                                            {/* Biểu tượng hủy (x) */}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <span onClick={() => {
+                                            setActiveSessionId(segment.id);
+                                            setShowChatSegments(false);
+                                            if (window.innerWidth <= 768) {
+                                                setShowChatSegments(false);
+                                            }
+                                        }}>
+                                            {segment.title} ({segment.message_count})
+                                        </span>
+
+                                        {/* Nhóm nút hành động */}
+                                        <div className="chat-actions-group">
+                                            {/* Nút chỉnh sửa */}
+                                            <button
+                                                className="edit-chat-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingSessionId(segment.id);
+                                                    setNewSessionTitle(segment.title);
+                                                }}
+                                                title="Chỉnh sửa tên đoạn chat"
+                                            >
+                                                {/* Biểu tượng chỉnh sửa (bút chì) */}
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                            </button>
+
+                                            {/* Nút xóa (Giữ nguyên logic cũ của bạn) */}
+                                            <button className="delete-chat-btn" onClick={(e) => {
+                                                e.stopPropagation();
+                                                confirmDeleteChatSession(segment.id);
+                                            }} title="Xóa đoạn chat">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                             </li>
                         ))
                     )}

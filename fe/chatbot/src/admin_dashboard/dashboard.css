@@ -1699,6 +1699,17 @@ body {
   outline: none;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
+.um-form-input,
+.um-form-select.email-input {
+  width: 93%;
+  padding: 0.625rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  color: #1f2937;
+  outline: none;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
 
 .um-form-input:focus,
 .um-form-select:focus {

@@ -305,3 +305,46 @@ def delete_chat_session(session_id):
         if db: # Ensure db exists before rollback
             db.rollback() # Rollback on the connection object
         return jsonify({"error": "Could not delete chat session."}), 500
+
+
+@chat_bp.route('/session/<int:session_id>', methods=['PUT', 'PATCH'])
+def update_chat_session_title(session_id):
+    """
+    Cập nhật tên (title) của một đoạn chat cụ thể.
+    Yêu cầu gửi lên là một JSON object chứa 'new_title'.
+    """
+    data = request.get_json()
+    new_title = data.get('new_title')
+    user_id = data.get('user_id')  # Thêm user_id để tăng tính bảo mật (đảm bảo người dùng sở hữu session)
+
+    if not new_title or not user_id:
+        return jsonify({"error": "new_title và user_id là bắt buộc."}), 400
+
+    db = get_db()
+    cursor = db.cursor()
+
+    try:
+        print(f"Bắt đầu cập nhật title cho session ID: {session_id} bởi User ID: {user_id}")
+        
+        # SỬA LỖI: Cần dùng cursor.execute, và thêm user_id vào điều kiện WHERE để bảo mật.
+        cursor.execute(
+            "UPDATE chat_sessions SET title = %s WHERE id = %s AND user_id = %s RETURNING id",
+            (new_title, session_id, user_id)
+        )
+        
+        updated_row = cursor.fetchone()
+
+        if updated_row is None:
+            # Không tìm thấy session hoặc user_id không khớp
+            db.rollback()
+            return jsonify({"error": "Không tìm thấy đoạn chat hoặc bạn không có quyền chỉnh sửa."}), 404
+        
+        db.commit()
+        print(f"Cập nhật title thành công cho session ID: {session_id}. Title mới: {new_title}")
+        return jsonify({"message": f"Tên đoạn chat đã được cập nhật thành: {new_title}", "session_id": session_id}), 200
+
+    except Exception as e:
+        print(f"Lỗi khi cập nhật tên đoạn chat: {e}")
+        if db:
+            db.rollback()
+        return jsonify({"error": f"Không thể cập nhật tên đoạn chat: {str(e)}"}), 500
