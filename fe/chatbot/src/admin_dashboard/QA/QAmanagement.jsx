@@ -48,7 +48,7 @@ const QAManagement = () => {
     } catch (err) {
       console.error('Lỗi khi lấy cấu hình AI:', err);
       // Hiển thị lỗi nếu không thể tải cấu hình AI
-      setConfigSaveStatus('error_load'); 
+      setConfigSaveStatus('error_load');
       setTimeout(() => setConfigSaveStatus(null), 5000);
     }
   };
@@ -112,8 +112,8 @@ const QAManagement = () => {
     setConfigSaveStatus(null);
     try {
       // Gửi chỉ systemInstruction vì modelName thường là cố định hoặc được quản lý bởi backend
-      await axios.put(`${API_BASE_URL}/qa/config`, { 
-        system_instruction: aiConfig.systemInstruction 
+      await axios.put(`${API_BASE_URL}/qa/config`, {
+        system_instruction: aiConfig.systemInstruction
       });
       setConfigSaveStatus('success');
     } catch (err) {
@@ -141,7 +141,7 @@ const QAManagement = () => {
   return (
     <div className="app-container">
       <h3 className="app-title">Quản lý Lịch sử Hội thoại</h3>
-      
+
       {deleteStatus === 'success' && (
         <div className="app-alert success" role="alert">
           <span className="app-alert-text">Xóa phiên chat thành công!</span>
@@ -198,8 +198,9 @@ const QAManagement = () => {
               <InfinityIcon className="app-loading-spinner" />
               <p className="app-loading-text">Đang tải dữ liệu...</p>
             </div>
-          ) : conversations.length === 0 ? (
-            <p className="app-no-data">Không có dữ liệu hội thoại nào.</p>
+          ) : 
+            filteredConversations.length === 0 ? (
+                <p className="app-no-data">Không tìm thấy hội thoại nào.</p>
           ) : (
             <>
               <table className="app-table">
@@ -259,13 +260,13 @@ const QAManagement = () => {
                         <ChevronLeft size={16} /> Previous
                       </button>
                     </li>
-                    {[...Array(totalPages)].map(page => (
-                      <li key={page + 1} className={`pagination-item ${currentPage === page + 1 ? 'active' : ''}`}>
+                    {Array.from({ length: totalPages }, (_, index) => (
+                      <li key={index + 1} className={`pagination-item ${currentPage === index + 1 ? 'active' : ''}`}>
                         <button
-                          onClick={() => handlePageChange(page + 1)}
+                          onClick={() => handlePageChange(index + 1)} // Dùng index + 1
                           className="pagination-button"
                         >
-                          {page + 1}
+                          {index + 1}
                         </button>
                       </li>
                     ))}
